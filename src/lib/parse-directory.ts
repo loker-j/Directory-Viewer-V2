@@ -2,7 +2,7 @@ interface DirectoryItem {
   name: string
   type: 'file' | 'folder'
   level: number
-  children?: DirectoryItem[]
+  children: DirectoryItem[]
 }
 
 export function parseDirectoryText(text: string): DirectoryItem[] {
@@ -58,7 +58,6 @@ export function parseDirectoryText(text: string): DirectoryItem[] {
       items.push(item)
     } else {
       const parent = stack[stack.length - 1].item
-      parent.children = parent.children || []
       parent.children.push(item)
     }
 

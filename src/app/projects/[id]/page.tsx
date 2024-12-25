@@ -13,8 +13,15 @@ interface PageProps {
   }
 }
 
+interface DirectoryData {
+  name: string;
+  size: number;
+  itemCount: number;
+  data: any;
+}
+
 export default function ProjectPage({ params }: PageProps) {
-  const [project, setProject] = useState<any>(null)
+  const [project, setProject] = useState<DirectoryData | null>(null)
   const [error, setError] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -38,14 +45,19 @@ export default function ProjectPage({ params }: PageProps) {
   useEffect(() => {
     async function fetchProject() {
       try {
-        const response = await fetch(`/api/projects/${params.id}`)
-        const data = await response.json()
+        const identifier = decodeURIComponent(params.id);
+        const response = await fetch(`/api/projects?identifier=${encodeURIComponent(identifier)}`);
+        const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || '加载项目失败')
+          throw new Error(data.error || '加载项目失败')
         }
 
-        setProject(data)
+        if (!data.success || !data.data) {
+          throw new Error('项目数据无效')
+        }
+
+        setProject(data.data)
       } catch (error) {
         console.error('获取项目数据失败:', error)
         setError(error instanceof Error ? error.message : '加载失败')
@@ -126,7 +138,7 @@ export default function ProjectPage({ params }: PageProps) {
             onNavigate={handleNavigate}
           />
           <DirectoryTree 
-            items={project.items} 
+            items={project.data} 
             searchQuery={searchQuery}
             currentMatchIndex={currentMatch}
             onMatchesUpdate={handleMatchesUpdate}

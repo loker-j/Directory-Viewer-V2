@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 目录结构查看器 V2
 
-## Getting Started
+一个简单的在线工具，用于查看和分析文件夹的目录结构。
 
-First, run the development server:
+## 功能特点
 
+- 支持拖放上传目录文件
+- 树形结构展示
+- 实时搜索和高亮
+- 支持大文件处理
+- URL分享功能
+
+## 技术栈
+
+- Next.js 14
+- TypeScript
+- Tailwind CSS
+- Vercel Blob Storage
+
+## 本地开发
+
+1. 克隆项目
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [repository-url]
+cd directory-viewer2
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. 安装依赖
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. 配置环境变量
+```bash
+cp .env.example .env.local
+```
+然后编辑 `.env.local` 文件，添加必要的环境变量。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. 启动开发服务器
+```bash
+npm run dev
+```
 
-## Learn More
+## 环境变量
 
-To learn more about Next.js, take a look at the following resources:
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob Storage 的访问令牌
+- `NEXTAUTH_URL`: Next Auth URL（本地开发使用 http://localhost:3000）
+- `NEXTAUTH_SECRET`: Next Auth 密钥
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 部署
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+项目可以直接部署到 Vercel 平台：
 
-## Deploy on Vercel
+1. Fork 这个仓库
+2. 在 Vercel 中导入项目
+3. 配置环境变量
+4. 部署
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 使用方法
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. 打开百度网盘网页版，找到要分析的文件夹
+2. 右键点击文件夹，选择"生成目录文件.txt"
+3. 将生成的 txt 文件上传到本网站
+4. 等待处理完成后即可查看目录结构
+
+## 存储策略
+
+- 小文件（<1000个文件）：使用 URL 参数 + 压缩编码
+- 大文件（>=1000个文件）：使用 Vercel Blob Storage
+
+## 许可证
+
+MIT

@@ -20,8 +20,6 @@ const CHUNK_SIZE = 1024 * 1024; // 1MB
 interface ProgressStatus {
   stage: '读取文件' | '解析结构' | '处理数据' | '完成'
   progress: number
-  currentBatch?: number
-  totalBatches?: number
   detail?: string
 }
 
@@ -94,107 +92,44 @@ export function UploadZone() {
       console.log('解析后的目录结构:', rootItems)
       setProgressStatus({ stage: '解析结构', progress: 100 })
 
-      // 扁平化处理
+      // 处理数据
       setProgressStatus({ 
         stage: '处理数据', 
         progress: 0,
-        detail: '扁平化处理中...'
+        detail: '准备数据...'
       })
 
-      // 扁平化处理，同时保存父子关系
-      interface FlatItem {
-        name: string
-        type: string
-        level: number
-        order: number
-        parentOrder: number | null
+      const directoryData = {
+        name: file.name.replace(/\.[^/.]+$/, ''),
+        size: file.size,
+        itemCount: countItems(rootItems),
+        data: rootItems
       }
 
-      const flatItems: FlatItem[] = []
-      let order = 0
+      // 发送数据
+      setProgressStatus({
+        stage: '处理数据',
+        progress: 50,
+        detail: '上传数据...'
+      })
 
-      function flattenItems(items: DirectoryItem[], parentOrder: number | null = null) {
-        items.forEach(item => {
-          const currentOrder = order++
-          flatItems.push({
-            name: item.name,
-            type: item.type,
-            level: item.level,
-            order: currentOrder,
-            parentOrder
-          })
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(directoryData)
+      })
 
-          if (item.children?.length) {
-            flattenItems(item.children, currentOrder)
-          }
-        })
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || '上传失败')
       }
 
-      flattenItems(rootItems)
-      console.log('扁平化后的项目数量:', flatItems.length)
-
-      // 分批处理
-      const BATCH_SIZE = 1000
-      const batches: FlatItem[][] = []
-      for (let i = 0; i < flatItems.length; i += BATCH_SIZE) {
-        batches.push(flatItems.slice(i, i + BATCH_SIZE))
-      }
-      console.log(`分成 ${batches.length} 个批次处理`)
-
-      // 串行处理每个批次
-      let projectId: string | null = null
+      const result = await response.json()
       
-      for (let i = 0; i < batches.length; i++) {
-        setProgressStatus({
-          stage: '处理数据',
-          progress: Math.floor((i / batches.length) * 100),
-          currentBatch: i + 1,
-          totalBatches: batches.length,
-          detail: `正在处理第 ${i + 1}/${batches.length} 批`
-        })
-
-        const formData = new FormData()
-        if (i === 0) {
-          formData.append('name', file.name.replace(/\.[^/.]+$/, ''))
-        }
-        formData.append('structure', JSON.stringify(batches[i]))
-        if (projectId) {
-          formData.append('projectId', projectId)
-        }
-        formData.append('batchNumber', String(i + 1))
-        formData.append('totalBatches', String(batches.length))
-        formData.append('isLastBatch', String(i === batches.length - 1))
-
-        let retryCount = 0
-        const maxRetries = 3
-        
-        while (retryCount < maxRetries) {
-          try {
-            console.log(`发送第 ${i + 1}/${batches.length} 批`)
-            const response = await fetch('/api/projects', { 
-              method: 'POST', 
-              body: formData 
-            })
-
-            if (!response.ok) {
-              throw new Error('创建项目失败')
-            }
-
-            const result = await response.json()
-            if (i === 0) {
-              projectId = result.id
-              console.log('项目创建成功:', projectId)
-            }
-            break
-          } catch (error) {
-            console.error(`第 ${i + 1} 批处理失败:`, error)
-            retryCount++
-            if (retryCount === maxRetries) throw error
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000))
-          }
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!result.success || !result.identifier) {
+        throw new Error('处理失败')
       }
 
       setProgressStatus({
@@ -204,9 +139,7 @@ export function UploadZone() {
       })
 
       await new Promise(resolve => setTimeout(resolve, 1000))
-      if (projectId) {
-        router.push(`/projects/${projectId}`)
-      }
+      router.push(`/projects/${encodeURIComponent(result.identifier)}`)
     } catch (error) {
       console.error('处理文件时出错:', error)
       throw error
@@ -248,92 +181,80 @@ export function UploadZone() {
       }
       await processFile(file)
     } catch (error) {
-      console.error('处理选择的文件时出错:', error)
+      console.error('处理文件时出错:', error)
       alert(error instanceof Error ? error.message : '上传失败')
     } finally {
       setIsProcessing(false)
       setProgressStatus({ stage: '读取文件', progress: 0 })
-      e.target.value = ''
+      if (e.target) {
+        e.target.value = ''
+      }
     }
   }, [router])
 
-  const renderProgress = () => (
-    <div className="space-y-4">
-      <div className="space-y-2 text-center">
-        <p className="text-sm text-muted-foreground">
-          {progressStatus.stage}... {progressStatus.progress}%
-        </p>
-        {progressStatus.detail && (
-          <p className="text-xs text-muted-foreground">
-            {progressStatus.detail}
-          </p>
-        )}
-        {progressStatus.currentBatch && progressStatus.totalBatches && (
-          <div className="w-full bg-secondary rounded-full h-2.5 dark:bg-gray-700">
-            <div 
-              className="bg-primary h-2.5 rounded-full transition-all duration-300" 
-              style={{ width: `${progressStatus.progress}%` }}
-            />
-          </div>
-        )}
-      </div>
-      <div className="flex justify-center">
-        <Button 
-          type="button"
-          size="lg" 
-          disabled
-          className="cursor-not-allowed"
-        >
-          处理中...
-        </Button>
-      </div>
-    </div>
-  )
-
   return (
     <div
-      className={`p-8 border-2 border-dashed rounded-lg transition-colors ${
-        isDragging ? 'border-primary bg-primary/5' : 'border-border'
-      }`}
+      className={`
+        border-2 border-dashed rounded-lg p-8
+        ${isDragging ? 'border-primary bg-primary/10' : 'border-muted-foreground/25'}
+        ${isProcessing ? 'opacity-50 cursor-wait' : 'cursor-pointer'}
+        transition-all duration-200
+      `}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {isProcessing ? (
-        renderProgress()
-      ) : (
-        <div className="text-center space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">
-              拖放目录文件到这里，或点击选择文件
-            </p>
-            <p className="text-xs text-muted-foreground">
-              支持的最大文件大小：{formatFileSize(MAX_FILE_SIZE)}
-            </p>
+      <div className="text-center space-y-4">
+        <input
+          type="file"
+          id="file-upload"
+          className="hidden"
+          accept=".txt"
+          onChange={handleFileSelect}
+          disabled={isProcessing}
+        />
+        
+        <label
+          htmlFor="file-upload"
+          className="block space-y-2 cursor-pointer"
+        >
+          <div className="text-2xl">📁</div>
+          <div className="font-medium">
+            {isProcessing ? (
+              <div className="space-y-2">
+                <div>{progressStatus.stage}</div>
+                <div className="text-sm text-muted-foreground">
+                  {progressStatus.detail}
+                </div>
+                <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-primary h-full transition-all duration-300"
+                    style={{ width: `${progressStatus.progress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <span className="text-primary">点击上传</span>
+                {' '}或拖放文件到这里
+              </>
+            )}
           </div>
-          <div className="flex justify-center">
-            <Button 
-              variant="default"
-              size="lg" 
-              disabled={isProcessing}
-              onClick={() => {
-                const input = document.getElementById('file-input') as HTMLInputElement
-                input?.click()
-              }}
-            >
-              选择文件
-            </Button>
+          <div className="text-sm text-muted-foreground">
+            支持 .txt 格式，最大 {formatFileSize(MAX_FILE_SIZE)}
           </div>
-        </div>
-      )}
-      <input
-        type="file"
-        accept=".txt"
-        className="hidden"
-        id="file-input"
-        onChange={handleFileSelect}
-        disabled={isProcessing}
-      />
+        </label>
+      </div>
     </div>
   )
+}
+
+function countItems(items: DirectoryItem[]): number {
+  let count = items.length
+  for (const item of items) {
+    if (item.children) {
+      count += countItems(item.children)
+    }
+  }
+  return count
 } 
