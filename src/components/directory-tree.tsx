@@ -36,10 +36,9 @@ export function DirectoryTree({
     }
 
     const matches: string[] = []
-    const parentPaths = new Set<string>()
 
-    // 查找匹配项及其所有父项
-    const findMatchesAndParents = (item: DirectoryItem, parentPath = '') => {
+    // 查找匹配项
+    const findMatches = (item: DirectoryItem, parentPath = '') => {
       const currentPath = parentPath ? `${parentPath}/${item.name}` : item.name
       
       if (item.name.toLowerCase().includes(searchQuery.toLowerCase())) {
@@ -47,31 +46,41 @@ export function DirectoryTree({
       }
 
       if (item.type === 'folder') {
-        if (item.children.some(child => 
-          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )) {
-          parentPaths.add(currentPath)
-        }
-        
-        item.children.forEach(child => 
-          findMatchesAndParents(child, currentPath)
-        )
+        item.children.forEach(child => findMatches(child, currentPath))
       }
     }
 
-    items.forEach(item => findMatchesAndParents(item))
-
-    // 自动展开包含匹配项的文件夹
-    setExpandedItems(new Set([...parentPaths]))
+    items.forEach(item => findMatches(item))
     setMatchedItems(matches)
     onMatchesUpdate(matches, matches.length > 0 ? 0 : -1)
   }, [searchQuery, items, onMatchesUpdate])
 
-  // 当前匹配项变化时，滚动到视图
+  // 当前匹配项变化时，展开父文件夹并滚动到视图
   useEffect(() => {
     if (matchedItems.length > 0 && currentMatchIndex >= 0) {
-      const element = document.getElementById(`item-${matchedItems[currentMatchIndex].replace(/\//g, '-')}`)
-      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      const currentPath = matchedItems[currentMatchIndex]
+      
+      // 获取当前匹配项的所有父文件夹路径
+      const folders = currentPath.split('/')
+      const parentFolders = new Set<string>()
+      for (let i = 0; i < folders.length - 1; i++) {
+        parentFolders.add(folders.slice(0, i + 1).join('/'))
+      }
+      
+      // 更新展开状态，只展开当前匹配项的父文件夹
+      setExpandedItems(prev => {
+        const newExpanded = new Set(prev)
+        parentFolders.forEach(folder => newExpanded.add(folder))
+        return newExpanded
+      })
+
+      // 等待DOM更新后滚动
+      setTimeout(() => {
+        const element = document.getElementById(`item-${currentPath.replace(/\//g, '-')}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 100)
     }
   }, [currentMatchIndex, matchedItems])
 
