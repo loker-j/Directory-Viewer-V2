@@ -1,26 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { createShortUrl } from '@/lib/utils/short-url'
+import { NextResponse } from 'next/server'
+import { logger } from '../../../lib/logger'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { originalUrl } = body
+    const { originalUrl } = await request.json()
 
     if (!originalUrl) {
-      return NextResponse.json(
-        { error: '缺少原始URL' },
-        { status: 400 }
-      )
+      logger.warn('Missing originalUrl in request')
+      return NextResponse.json({ error: 'Missing originalUrl' }, { status: 400 })
     }
 
+    logger.info('Creating short URL for:', originalUrl)
     const shortId = await createShortUrl(originalUrl)
+    logger.info('Created short URL:', shortId)
     
-    return NextResponse.json({ shortId })
+    return NextResponse.json({ shortId }, { status: 200 })
   } catch (error) {
-    console.error('创建短链接失败:', error)
-    return NextResponse.json(
-      { error: '创建短链接失败' },
-      { status: 500 }
-    )
+    logger.error('Failed to create short URL:', error)
+    return NextResponse.json({ error: '创建短链接失败' }, { status: 500 })
   }
 } 

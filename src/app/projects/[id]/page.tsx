@@ -29,6 +29,7 @@ export default function ProjectPage({ params }: PageProps) {
   const [matchedItems, setMatchedItems] = useState<string[]>([])
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [shortUrl, setShortUrl] = useState<string>('')
+  const [isCreatingShortUrl, setIsCreatingShortUrl] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => {
@@ -41,6 +42,43 @@ export default function ProjectPage({ params }: PageProps) {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // 创建短链接的函数
+  const createShortUrl = async (originalUrl: string) => {
+    if (isCreatingShortUrl || shortUrl) return
+    
+    try {
+      setIsCreatingShortUrl(true)
+      console.log('开始创建短链接:', originalUrl)
+      
+      const shortResponse = await fetch('/api/short-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ originalUrl })
+      });
+
+      if (shortResponse.ok) {
+        const data = await shortResponse.json();
+        console.log('API响应:', data)
+        
+        if (data.shortId) {
+          const fullShortUrl = `${window.location.origin}/s/${data.shortId}`;
+          console.log('生成的完整短链接:', fullShortUrl)
+          setShortUrl(fullShortUrl);
+        } else {
+          console.error('API响应中没有shortId:', data)
+        }
+      } else {
+        console.error('API请求失败:', shortResponse.status)
+      }
+    } catch (error) {
+      console.error('创建短链接失败:', error)
+    } finally {
+      setIsCreatingShortUrl(false)
+    }
   }
 
   useEffect(() => {
@@ -59,22 +97,6 @@ export default function ProjectPage({ params }: PageProps) {
         }
 
         setProject(data.data)
-
-        // 获取短链接
-        const shortResponse = await fetch('/api/short-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            originalUrl: `https://mlckq.top/projects/${params.id}`
-          })
-        });
-
-        if (shortResponse.ok) {
-          const { shortId } = await shortResponse.json();
-          setShortUrl(`https://mlckq.top/s/${shortId}`);
-        }
       } catch (error) {
         console.error('获取项目数据失败:', error)
         setError(error instanceof Error ? error.message : '加载失败')
@@ -85,6 +107,14 @@ export default function ProjectPage({ params }: PageProps) {
 
     fetchProject()
   }, [params.id])
+
+  // 单独的useEffect用于创建短链接
+  useEffect(() => {
+    if (project && !shortUrl && !isCreatingShortUrl) {
+      const originalUrl = `${window.location.origin}/projects/${params.id}`;
+      createShortUrl(originalUrl);
+    }
+  }, [project, params.id])
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query.toLowerCase())
@@ -145,7 +175,7 @@ export default function ProjectPage({ params }: PageProps) {
             {project.name}
           </h1>
           <ShareOptions 
-            url={shortUrl || `https://mlckq.top/projects/${params.id}`}
+            url={shortUrl || `${window.location.origin}/projects/${params.id}`}
             projectName={project.name}
           />
           <SearchBox 
