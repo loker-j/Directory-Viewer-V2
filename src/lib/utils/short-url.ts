@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid';
 const BLOB_PREFIX = 'short-urls/';
 const SHORT_ID_LENGTH = 6;
 const EXPIRY_DAYS = 30;
-const GRACE_PERIOD_DAYS = 7;
+const UPDATE_INTERVAL_DAYS = 1; // 每天最多更新一次
 
 // 简单的内存缓存
 const urlCache = new Map<string, {
@@ -68,63 +68,40 @@ export async function getOriginalUrl(shortId: string): Promise<string | null> {
     
     const shortUrl: ShortUrl = await response.json();
     const now = new Date();
-    const createdAt = new Date(shortUrl.createdAt);
     const lastAccessAt = new Date(shortUrl.lastAccessAt);
     
-    // 计算时间差
-    const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+    // 计算距离上次访问的天数
     const daysSinceLastAccess = (now.getTime() - lastAccessAt.getTime()) / (1000 * 60 * 60 * 24);
     
-    // 检查是否需要延期
-    if (daysSinceCreation > EXPIRY_DAYS && daysSinceLastAccess <= GRACE_PERIOD_DAYS) {
-      // 更新访问信息
-      shortUrl.lastAccessAt = now.toISOString();
-      shortUrl.accessCount += 1;
-      
-      // 异步更新存储
-      const blob = new Blob([JSON.stringify(shortUrl)], { type: 'application/json' });
-      put(`${BLOB_PREFIX}${shortId}.json`, blob, {
-        access: 'public',
-        addRandomSuffix: false
-      }).catch(error => {
-        console.error('更新短链接访问信息失败:', error);
-      });
-      
-      // 更新缓存
-      urlCache.set(shortId, {
-        data: shortUrl,
-        timestamp: Date.now()
-      });
+    // 如果最后访问在30天内
+    if (daysSinceLastAccess <= EXPIRY_DAYS) {
+      // 如果距离上次更新超过1天，才更新访问时间
+      if (daysSinceLastAccess >= UPDATE_INTERVAL_DAYS) {
+        shortUrl.lastAccessAt = now.toISOString();
+        shortUrl.accessCount += 1;
+        
+        // 异步更新存储
+        const blob = new Blob([JSON.stringify(shortUrl)], { type: 'application/json' });
+        put(`${BLOB_PREFIX}${shortId}.json`, blob, {
+          access: 'public',
+          addRandomSuffix: false
+        }).catch(error => {
+          console.error('更新短链接访问信息失败:', error);
+        });
+        
+        // 更新缓存
+        urlCache.set(shortId, {
+          data: shortUrl,
+          timestamp: Date.now()
+        });
+      }
       
       return shortUrl.originalUrl;
     }
     
-    // 如果超过宽限期，标记为过期
-    if (daysSinceCreation > EXPIRY_DAYS && daysSinceLastAccess > GRACE_PERIOD_DAYS) {
-      shortUrl.isExpired = true;
-      return null;
-    }
-    
-    // 正常访问，更新计数
-    shortUrl.accessCount += 1;
-    shortUrl.lastAccessAt = now.toISOString();
-    
-    // 异步更新存储
-    const blob = new Blob([JSON.stringify(shortUrl)], { type: 'application/json' });
-    put(`${BLOB_PREFIX}${shortId}.json`, blob, {
-      access: 'public',
-      addRandomSuffix: false
-    }).catch(error => {
-      console.error('更新短链接访问信息失败:', error);
-    });
-    
-    // 更新缓存
-    urlCache.set(shortId, {
-      data: shortUrl,
-      timestamp: Date.now()
-    });
-    
-    return shortUrl.originalUrl;
+    // 如果超过30天未访问，标记为过期
+    shortUrl.isExpired = true;
+    return null;
   } catch (error) {
     console.error('获取短链接失败:', error);
     return null;
@@ -144,8 +121,8 @@ export async function cleanupExpiredUrls() {
       const lastAccessAt = new Date(shortUrl.lastAccessAt);
       const daysSinceLastAccess = (now.getTime() - lastAccessAt.getTime()) / (1000 * 60 * 60 * 24);
       
-      // 只清理超���宽限期的链接
-      if (daysSinceLastAccess > GRACE_PERIOD_DAYS) {
+      // 清理30天未访问的链接
+      if (daysSinceLastAccess > EXPIRY_DAYS) {
         await del(blob.url);
         // 从缓存中移除
         urlCache.delete(shortUrl.shortId);
