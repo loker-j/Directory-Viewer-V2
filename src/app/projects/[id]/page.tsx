@@ -28,6 +28,7 @@ export default function ProjectPage({ params }: PageProps) {
   const [currentMatch, setCurrentMatch] = useState(0)
   const [matchedItems, setMatchedItems] = useState<string[]>([])
   const [showScrollTop, setShowScrollTop] = useState(false)
+  const [shortUrl, setShortUrl] = useState<string>('')
 
   useEffect(() => {
     const handleScroll = () => {
@@ -58,6 +59,22 @@ export default function ProjectPage({ params }: PageProps) {
         }
 
         setProject(data.data)
+
+        // 获取短链接
+        const shortResponse = await fetch('/api/short-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            originalUrl: `https://mlckq.top/projects/${params.id}`
+          })
+        });
+
+        if (shortResponse.ok) {
+          const { shortId } = await shortResponse.json();
+          setShortUrl(`https://mlckq.top/s/${shortId}`);
+        }
       } catch (error) {
         console.error('获取项目数据失败:', error)
         setError(error instanceof Error ? error.message : '加载失败')
@@ -128,7 +145,7 @@ export default function ProjectPage({ params }: PageProps) {
             {project.name}
           </h1>
           <ShareOptions 
-            url={`https://mlckq.top/projects/${params.id}`}
+            url={shortUrl || `https://mlckq.top/projects/${params.id}`}
             projectName={project.name}
           />
           <SearchBox 
