@@ -110,11 +110,14 @@ export default function ProjectPage({ params }: PageProps) {
 
   // 单独的useEffect用于创建短链接
   useEffect(() => {
-    if (project && !shortUrl && !isCreatingShortUrl) {
+    // 检查是否是从短链接跳转来的
+    const isFromShortUrl = document.referrer.includes('/s/');
+    
+    if (project && !shortUrl && !isCreatingShortUrl && !isFromShortUrl) {
       const originalUrl = `${window.location.origin}/projects/${params.id}`;
       createShortUrl(originalUrl);
     }
-  }, [project, params.id])
+  }, [project, params.id, shortUrl, isCreatingShortUrl])
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query.toLowerCase())
