@@ -128,7 +128,7 @@ export default function ProjectPage({ params }: PageProps) {
             {project.name}
           </h1>
           <ShareOptions 
-            url={typeof window !== 'undefined' ? window.location.href : ''} 
+            url={`https://mlckq.top/projects/${params.id}`}
             projectName={project.name}
           />
           <SearchBox 
