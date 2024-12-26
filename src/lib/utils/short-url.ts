@@ -61,7 +61,9 @@ export async function getOriginalUrl(shortId: string): Promise<string | null> {
       return cached.data.originalUrl;
     }
 
-    const response = await fetch(`${process.env.BLOB_PUBLIC_URL}/${BLOB_PREFIX}${shortId}.json`);
+    // 使用默认的 Vercel Blob 域名
+    const blobUrl = process.env.BLOB_PUBLIC_URL || 'https://store.blob.vercel-storage.com';
+    const response = await fetch(`${blobUrl}/${BLOB_PREFIX}${shortId}.json`);
     if (!response.ok) return null;
     
     const shortUrl: ShortUrl = await response.json();
@@ -142,7 +144,7 @@ export async function cleanupExpiredUrls() {
       const lastAccessAt = new Date(shortUrl.lastAccessAt);
       const daysSinceLastAccess = (now.getTime() - lastAccessAt.getTime()) / (1000 * 60 * 60 * 24);
       
-      // 只清理超过宽限期的链接
+      // 只清理超���宽限期的链接
       if (daysSinceLastAccess > GRACE_PERIOD_DAYS) {
         await del(blob.url);
         // 从缓存中移除
