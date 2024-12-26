@@ -23,6 +23,16 @@ export interface ShortUrl {
   isExpired: boolean;
 }
 
+// 生成文件名
+function getFileName(shortId: string): string {
+  return `${shortId}.json`;
+}
+
+// 生成完整的存储路径
+function getStoragePath(shortId: string): string {
+  return `${BLOB_PREFIX}${getFileName(shortId)}`;
+}
+
 // 生成短链接
 export async function createShortUrl(originalUrl: string): Promise<string> {
   const shortId = nanoid(SHORT_ID_LENGTH);
@@ -38,9 +48,10 @@ export async function createShortUrl(originalUrl: string): Promise<string> {
   };
 
   const blob = new Blob([JSON.stringify(shortUrl)], { type: 'application/json' });
-  await put(`${BLOB_PREFIX}${shortId}.json`, blob, {
+  await put(getStoragePath(shortId), blob, {
     access: 'public',
-    addRandomSuffix: false
+    addRandomSuffix: false,
+    token: process.env.BLOB_READ_WRITE_TOKEN
   });
 
   // 添加到缓存
@@ -63,8 +74,18 @@ export async function getOriginalUrl(shortId: string): Promise<string | null> {
 
     // 使用默认的 Vercel Blob 域名
     const blobUrl = process.env.BLOB_PUBLIC_URL || 'https://store.blob.vercel-storage.com';
-    const response = await fetch(`${blobUrl}/${BLOB_PREFIX}${shortId}.json`);
-    if (!response.ok) return null;
+    const response = await fetch(`${blobUrl}/${getStoragePath(shortId)}`);
+    
+    // 如果文件不存在，直接返回null
+    if (response.status === 404) {
+      console.log('短链接不存在:', shortId);
+      return null;
+    }
+    
+    if (!response.ok) {
+      console.error('获取短链接失败:', response.status, response.statusText);
+      return null;
+    }
     
     const shortUrl: ShortUrl = await response.json();
     const now = new Date();
@@ -82,9 +103,10 @@ export async function getOriginalUrl(shortId: string): Promise<string | null> {
         
         // 异步更新存储
         const blob = new Blob([JSON.stringify(shortUrl)], { type: 'application/json' });
-        put(`${BLOB_PREFIX}${shortId}.json`, blob, {
+        put(getStoragePath(shortId), blob, {
           access: 'public',
-          addRandomSuffix: false
+          addRandomSuffix: false,
+          token: process.env.BLOB_READ_WRITE_TOKEN
         }).catch(error => {
           console.error('更新短链接访问信息失败:', error);
         });
@@ -110,7 +132,7 @@ export async function getOriginalUrl(shortId: string): Promise<string | null> {
 
 // 清理过期的短链接
 export async function cleanupExpiredUrls() {
-  const { blobs } = await list({ prefix: BLOB_PREFIX });
+  const { blobs } = await list({ prefix: BLOB_PREFIX, token: process.env.BLOB_READ_WRITE_TOKEN });
   const now = new Date();
   
   for (const blob of blobs) {
@@ -123,7 +145,7 @@ export async function cleanupExpiredUrls() {
       
       // 清理30天未访问的链接
       if (daysSinceLastAccess > EXPIRY_DAYS) {
-        await del(blob.url);
+        await del(blob.url, { token: process.env.BLOB_READ_WRITE_TOKEN });
         // 从缓存中移除
         urlCache.delete(shortUrl.shortId);
       }
