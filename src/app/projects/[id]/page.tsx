@@ -46,16 +46,26 @@ export default function ProjectPage({ params }: PageProps) {
 
   // 创建短链接的函数
   const createShortUrl = async (originalUrl: string) => {
-    if (isCreatingShortUrl || shortUrl) return
+    if (isCreatingShortUrl || shortUrl) {
+      console.log('跳过创建短链接:', { isCreating: isCreatingShortUrl, existingShortUrl: shortUrl });
+      return;
+    }
     
     try {
       setIsCreatingShortUrl(true)
       console.log('开始创建短链接:', originalUrl)
       
       // 先检查是否已存在
-      const indexResponse = await fetch(`${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/short-urls/index.json`);
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/short-urls/index.json`;
+      console.log('检查index文件:', indexUrl);
+      
+      const indexResponse = await fetch(indexUrl);
+      console.log('Index响应状态:', indexResponse.status);
+      
       if (indexResponse.ok) {
         const index = await indexResponse.json() as Record<string, string>;
+        console.log('获取到的index数据:', index);
+        
         const existingId = Object.entries(index).find(([_, url]) => url === originalUrl)?.[0];
         if (existingId) {
           const fullShortUrl = `${window.location.origin}/s/${existingId}`;
@@ -63,6 +73,9 @@ export default function ProjectPage({ params }: PageProps) {
           setShortUrl(fullShortUrl);
           return;
         }
+        console.log('未找到已存在的短链接，将创建新的');
+      } else {
+        console.log('获取index文件失败，将创建新的短链接');
       }
       
       // 如果不存在，创建新的
@@ -126,6 +139,13 @@ export default function ProjectPage({ params }: PageProps) {
   useEffect(() => {
     // 检查是否是从短链接跳转来的
     const isFromShortUrl = document.referrer.includes('/s/');
+    console.log('页面加载检查:', {
+      hasProject: !!project,
+      hasShortUrl: !!shortUrl,
+      isCreating: isCreatingShortUrl,
+      isFromShortUrl,
+      referrer: document.referrer
+    });
     
     if (project && !shortUrl && !isCreatingShortUrl && !isFromShortUrl) {
       const originalUrl = `${window.location.origin}/projects/${params.id}`;

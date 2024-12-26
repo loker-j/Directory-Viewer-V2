@@ -47,14 +47,20 @@ export const createShortUrl = cache(async (originalUrl: string): Promise<string>
 
     // 检查Blob存储中是否已存在相同的URL
     try {
-      const response = await fetch(`${process.env.BLOB_PUBLIC_URL}/short-urls/index.json`)
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/short-urls/index.json`;
+      console.log('检查index URL:', indexUrl);
+      const response = await fetch(indexUrl);
+      console.log('index响应状态:', response.status);
+      
       if (response.ok) {
         const index = await response.json() as Record<string, string>
+        console.log('获取到的index数据:', index);
         const existingId = Object.entries(index).find(([_, url]) => url === originalUrl)?.[0]
         if (existingId) {
           console.log('从Blob存储中找到已存在的短链接:', existingId)
           return existingId
         }
+        console.log('index中未找到匹配的URL');
       }
     } catch (error) {
       console.error('检查已存在短链接失败:', error)
@@ -85,13 +91,19 @@ export const createShortUrl = cache(async (originalUrl: string): Promise<string>
     // 更新索引
     try {
       const indexPath = 'short-urls/index.json'
-      const indexResponse = await fetch(`${process.env.BLOB_PUBLIC_URL}/${indexPath}`)
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${indexPath}`;
+      console.log('准备更新index, URL:', indexUrl);
+      const indexResponse = await fetch(indexUrl)
+      console.log('获取现有index响应状态:', indexResponse.status);
       const index = (indexResponse.ok ? await indexResponse.json() : {}) as Record<string, string>
+      console.log('现有index数据:', index);
       index[shortId] = originalUrl
+      console.log('更新后的index数据:', index);
       await put(indexPath, JSON.stringify(index), {
         access: 'public',
         addRandomSuffix: false
       })
+      console.log('index更新成功');
     } catch (error) {
       console.error('更新短链接索引失败:', error)
     }
