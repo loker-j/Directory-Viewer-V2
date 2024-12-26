@@ -52,6 +52,20 @@ export default function ProjectPage({ params }: PageProps) {
       setIsCreatingShortUrl(true)
       console.log('开始创建短链接:', originalUrl)
       
+      // 先检查是否已存在
+      const indexResponse = await fetch(`${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/short-urls/index.json`);
+      if (indexResponse.ok) {
+        const index = await indexResponse.json() as Record<string, string>;
+        const existingId = Object.entries(index).find(([_, url]) => url === originalUrl)?.[0];
+        if (existingId) {
+          const fullShortUrl = `${window.location.origin}/s/${existingId}`;
+          console.log('找到已存在的短链接:', fullShortUrl);
+          setShortUrl(fullShortUrl);
+          return;
+        }
+      }
+      
+      // 如果不存在，创建新的
       const shortResponse = await fetch('/api/short-url', {
         method: 'POST',
         headers: {
