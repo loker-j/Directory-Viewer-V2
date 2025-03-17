@@ -26,7 +26,44 @@ export async function middleware(request: NextRequest) {
   
   console.log(`处理中间件请求: ${pathname}`);
   
-  // 如果是公开路由，不需要验证
+  // 显式拦截/viewer路径，确保即使其他条件没有触发，这个路径也能被拦截
+  if (pathname === '/viewer' || pathname.startsWith('/viewer/')) {
+    console.log(`检测到受保护路径: ${pathname}`);
+    
+    // 获取会话ID
+    const sessionId = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    console.log(`会话ID: ${sessionId ? '存在' : '不存在'}`);
+    
+    // 如果没有会话ID，重定向到登录页面
+    if (!sessionId) {
+      console.log('没有会话ID，重定向到登录页面');
+      return redirectToLogin(request);
+    }
+    
+    // 验证会话
+    try {
+      const userId = await verifySession(sessionId);
+      if (!userId) {
+        console.log('会话无效，重定向到登录页面');
+        const response = NextResponse.redirect(new URL('/auth/login', request.url));
+        response.cookies.set({
+          name: SESSION_COOKIE_NAME,
+          value: '',
+          path: '/',
+          maxAge: 0,
+        });
+        return response;
+      }
+      
+      console.log(`用户ID: ${userId}，允许访问`);
+      return NextResponse.next();
+    } catch (error) {
+      console.error('会话验证发生错误:', error);
+      return redirectToLogin(request);
+    }
+  }
+  
+  // 原有的验证逻辑保持不变
   if (publicRoutes.some(route => 
       pathname === route || 
       pathname.startsWith('/api/public') ||
@@ -84,12 +121,14 @@ function redirectToLogin(request: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-// 配置中间件匹配路径
+// 配置中间件匹配路径 - 使用多种格式确保兼容性
 export const config = {
   matcher: [
-    // 限制中间件只应用于非公开路由和/viewer路径
+    // 限制中间件只应用于非公开路由
     '/((?!_next|static|favicon.ico|auth/login|auth/register|api/auth|api/public|api/projects|api/short-url|projects|s).*)',
+    // 明确匹配/viewer和其所有子路径 - 使用多种格式增加兼容性
     '/viewer',
-    '/viewer/:path*'  // 添加此行以匹配/viewer下的所有路径
+    '/viewer/:path*',
+    '/viewer/(.*)'
   ],
 }; 

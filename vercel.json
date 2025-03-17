@@ -1,0 +1,9 @@
+{
+  "routes": [
+    { 
+      "src": "/viewer(.*)", 
+      "dest": "/viewer", 
+      "middlewarePath": "middleware" 
+    }
+  ]
+} 
