@@ -118,6 +118,7 @@ export function UploadZone() {
         headers: {
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(directoryData)
       })
 
