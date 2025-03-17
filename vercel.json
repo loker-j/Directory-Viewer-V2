@@ -1,0 +1,4 @@
+{
+  "outputDirectory": "directory-viewer",
+  "buildCommand": "cd directory-viewer && npm install && npm run build"
+} 

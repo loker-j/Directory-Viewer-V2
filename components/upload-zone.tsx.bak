@@ -1,0 +1,156 @@
+'use client';
+
+import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+
+export function UploadZone() {
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const router = useRouter();
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && droppedFile.type === 'text/plain') {
+      setFile(droppedFile);
+      setError(null);
+    } else {
+      setError('请上传TXT文件');
+    }
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile && selectedFile.type === 'text/plain') {
+      setFile(selectedFile);
+      setError(null);
+    } else {
+      setError('请上传TXT文件');
+    }
+  }, []);
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!file) {
+      setError('请选择一个要上传的文件');
+      return;
+    }
+    
+    setIsUploading(true);
+    setError(null);
+    
+    try {
+      // 创建FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // 发送文件到服务器
+      const response = await fetch('/api/viewer/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '上传失败');
+      }
+      
+      const data = await response.json();
+      
+      // 成功上传后跳转到查看页面
+      router.push(`/viewer/s/${data.id}`);
+    } catch (err: any) {
+      console.error('上传失败:', err);
+      setError(err.message || '上传失败，请稍后再试');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [file, router]);
+
+  return (
+    <div 
+      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        isDragging 
+          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10' 
+          : 'border-gray-300 hover:border-blue-400 dark:border-gray-700 dark:hover:border-blue-600'
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex justify-center">
+            <svg 
+              className="w-12 h-12 text-gray-400" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24" 
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={1.5} 
+                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+              />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold">
+            {file ? file.name : '拖放或点击选择文件'}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {file 
+              ? `文件大小: ${(file.size / 1024).toFixed(2)} KB` 
+              : '支持 .txt 格式的目录文件'
+            }
+          </p>
+          {error && (
+            <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+          )}
+        </div>
+        
+        <div className="flex flex-col space-y-2">
+          <label className="relative inline-flex items-center justify-center cursor-pointer">
+            <input 
+              type="file" 
+              accept=".txt" 
+              className="sr-only" 
+              onChange={handleFileChange}
+            />
+            <span className="px-4 py-2 text-sm border rounded-md bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+              选择文件
+            </span>
+          </label>
+          
+          <button 
+            type="submit" 
+            disabled={isUploading || !file} 
+            className={`px-4 py-2 text-sm rounded-md text-white transition-colors ${
+              isUploading || !file 
+                ? 'bg-blue-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {isUploading ? '处理中...' : '开始解析'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+} 
