@@ -112,28 +112,39 @@ export default function ProjectPage({ params }: PageProps) {
     async function fetchProject() {
       try {
         const identifier = decodeURIComponent(params.id);
-        const response = await fetch(`/api/projects?identifier=${encodeURIComponent(identifier)}`);
-        const data = await response.json();
-
+        // 使用正确的API端点格式
+        const response = await fetch(`/api/projects/${identifier}`, {
+          credentials: 'include' // 确保包含凭据
+        });
+        
         if (!response.ok) {
-          throw new Error(data.error || '加载项目失败')
+          if (response.status === 401) {
+            // 未登录则跳转到登录页
+            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
+            return;
+          }
+          throw new Error('加载项目失败');
         }
-
-        if (!data.success || !data.data) {
-          throw new Error('项目数据无效')
+        
+        const data = await response.json();
+        
+        if (!data.project) {
+          throw new Error('项目数据无效');
         }
-
-        setProject(data.data)
+        
+        // 设置项目数据
+        setProject(data.project);
+        console.log('获取到项目数据:', data.project);
       } catch (error) {
-        console.error('获取项目数据失败:', error)
-        setError(error instanceof Error ? error.message : '加载失败')
+        console.error('获取项目数据失败:', error);
+        setError(error instanceof Error ? error.message : '加载失败');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchProject()
-  }, [params.id])
+    fetchProject();
+  }, [params.id]);
 
   // 单独的useEffect用于创建短链接
   useEffect(() => {
