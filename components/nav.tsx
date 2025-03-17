@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
+// 确保与服务器端使用相同的cookie名称
+const SESSION_COOKIE_NAME = 'auth_session';
+
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
@@ -14,21 +17,32 @@ export function Nav() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        // 首先检查cookie是否存在
-        const hasSessionCookie = document.cookie.includes('auth_session=');
-        console.log('导航组件检测到会话状态:', hasSessionCookie ? '已登录' : '未登录');
+        // 使用更精确的cookie检测方法
+        const cookies = document.cookie.split(';');
+        const sessionCookie = cookies.find(c => c.trim().startsWith(`${SESSION_COOKIE_NAME}=`));
+        const hasValidSession = !!sessionCookie && sessionCookie.trim().split('=')[1].length > 0;
         
-        // 只设置登录状态，不进行任何重定向
-        // 重定向由服务器端中间件负责
-        setIsLoggedIn(hasSessionCookie);
+        console.log('导航组件检测到会话状态:', hasValidSession ? '已登录' : '未登录');
+        
+        setIsLoggedIn(hasValidSession);
+        setIsLoaded(true);
+        
+        // 如果在上传页但未登录，服务器会处理重定向
+        // 这里只设置前端状态
       } catch (error) {
         console.error('检查登录状态失败:', error);
         setIsLoggedIn(false);
+        setIsLoaded(true);
       }
     };
     
-    checkLoginStatus();
-  }, []);
+    // 设置延迟确保cookie加载完成
+    const timer = setTimeout(() => {
+      checkLoginStatus();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [pathname]);  // 添加pathname依赖，确保路由变化时重新检查
   
   return (
     <nav className="bg-white shadow-sm dark:bg-gray-800">
@@ -54,47 +68,49 @@ export function Nav() {
         </div>
         
         <div className="flex items-center space-x-4">
-          {isLoggedIn ? (
-            <>
-              <button 
-                onClick={async () => {
-                  try {
-                    await fetch('/api/auth/logout', { 
-                      method: 'POST',
-                      credentials: 'include' // 确保发送cookies
-                    });
-                    // 清除客户端状态
-                    setIsLoggedIn(false);
-                    // 强制刷新页面以确保所有状态都重置
-                    window.location.href = '/';
-                  } catch (error) {
-                    console.error('退出登录失败:', error);
-                  }
-                }}
-                className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-              >
-                退出登录
-              </button>
-            </>
-          ) : (
-            <>
-              {pathname === '/' && (
-                <>
-                  <Link 
-                    href="/auth/login" 
-                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                  >
-                    登录
-                  </Link>
-                  <Link 
-                    href="/auth/register" 
-                    className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    注册
-                  </Link>
-                </>
-              )}
-            </>
+          {isLoaded && (
+            isLoggedIn ? (
+              <>
+                <button 
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/auth/logout', { 
+                        method: 'POST',
+                        credentials: 'include' // 确保发送cookies
+                      });
+                      // 清除客户端状态
+                      setIsLoggedIn(false);
+                      // 强制刷新页面以确保所有状态都重置
+                      window.location.href = '/';
+                    } catch (error) {
+                      console.error('退出登录失败:', error);
+                    }
+                  }}
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  退出登录
+                </button>
+              </>
+            ) : (
+              <>
+                {pathname === '/' && (
+                  <>
+                    <Link 
+                      href="/auth/login" 
+                      className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                    >
+                      登录
+                    </Link>
+                    <Link 
+                      href="/auth/register" 
+                      className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      注册
+                    </Link>
+                  </>
+                )}
+              </>
+            )
           )}
         </div>
       </div>
