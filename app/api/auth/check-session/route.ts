@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
         user: {
           id: userInfo.user.id,
           phoneNumber: userInfo.user.phoneNumber,
+          // 如果将来有用户名，也可以返回
+          // username: userInfo.user.username
         }
       },
       { status: 200 }

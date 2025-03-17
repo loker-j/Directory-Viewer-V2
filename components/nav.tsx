@@ -13,6 +13,7 @@ export function Nav() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [username, setUsername] = useState('');
+  const [userPhone, setUserPhone] = useState('');
   const [showUserMenu, setShowUserMenu] = useState(false);
   
   // 在客户端检查登录状态
@@ -21,23 +22,39 @@ export function Nav() {
       try {
         // 使用更精确的cookie检测方法
         const cookies = document.cookie.split(';');
+        console.log('所有Cookies:', cookies);
+        
         const sessionCookie = cookies.find(c => c.trim().startsWith(`${SESSION_COOKIE_NAME}=`));
+        console.log('会话Cookie:', sessionCookie);
+        
         const hasValidSession = !!sessionCookie && sessionCookie.trim().split('=')[1].length > 0;
         
         console.log('导航组件检测到会话状态:', hasValidSession ? '已登录' : '未登录');
+        console.log('环境变量是否设置:', process.env.NEXT_PUBLIC_VERCEL_ENV || 'development');
         
         setIsLoggedIn(hasValidSession);
         
         // 如果已登录，获取用户信息
         if (hasValidSession) {
           try {
+            console.log('尝试获取用户信息...');
             const response = await fetch('/api/auth/check-session', {
               credentials: 'include'
             });
+            console.log('获取用户信息响应状态:', response.status);
+            
             if (response.ok) {
               const data = await response.json();
-              if (data.user && data.user.username) {
-                setUsername(data.user.username);
+              console.log('用户信息数据:', data);
+              
+              if (data.authenticated && data.user) {
+                if (data.user.username) {
+                  setUsername(data.user.username);
+                }
+                if (data.user.phoneNumber) {
+                  setUserPhone(data.user.phoneNumber);
+                  console.log('设置用户电话号码:', data.user.phoneNumber);
+                }
               }
             }
           } catch (error) {
@@ -78,6 +95,25 @@ export function Nav() {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [showUserMenu]);
+
+  // 获取用户显示名称
+  const getDisplayName = () => {
+    if (username) return username;
+    if (userPhone) {
+      if (userPhone.length >= 11) {
+        return userPhone.substring(0, 3) + '****' + userPhone.substring(7);
+      }
+      return userPhone;
+    }
+    return '用户';
+  };
+
+  // 获取头像显示字母
+  const getAvatarLetter = () => {
+    if (username && username.length > 0) return username.charAt(0).toUpperCase();
+    if (userPhone && userPhone.length > 0) return userPhone.charAt(0);
+    return 'U';
+  };
   
   return (
     <nav className="bg-white shadow-sm dark:bg-gray-800">
@@ -120,9 +156,9 @@ export function Nav() {
                   className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
                   <span className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white">
-                    {username.charAt(0).toUpperCase()}
+                    {getAvatarLetter()}
                   </span>
-                  <span>{username || '用户'}</span>
+                  <span>{getDisplayName()}</span>
                 </button>
                 
                 {showUserMenu && (
