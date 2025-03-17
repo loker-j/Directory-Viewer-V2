@@ -20,52 +20,41 @@ export function Nav() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       try {
-        // 使用更精确的cookie检测方法
-        const cookies = document.cookie.split(';');
-        console.log('所有Cookies:', cookies);
+        console.log('检查登录状态...');
         
-        const sessionCookie = cookies.find(c => c.trim().startsWith(`${SESSION_COOKIE_NAME}=`));
-        console.log('会话Cookie:', sessionCookie);
+        // 直接调用 API 端点检查会话状态
+        const response = await fetch('/api/auth/check-session', {
+          credentials: 'include' // 确保发送 cookies
+        });
         
-        const hasValidSession = !!sessionCookie && sessionCookie.trim().split('=')[1].length > 0;
+        console.log('会话检查响应状态:', response.status);
         
-        console.log('导航组件检测到会话状态:', hasValidSession ? '已登录' : '未登录');
-        console.log('环境变量是否设置:', process.env.NEXT_PUBLIC_VERCEL_ENV || 'development');
-        
-        setIsLoggedIn(hasValidSession);
-        
-        // 如果已登录，获取用户信息
-        if (hasValidSession) {
-          try {
-            console.log('尝试获取用户信息...');
-            const response = await fetch('/api/auth/check-session', {
-              credentials: 'include'
-            });
-            console.log('获取用户信息响应状态:', response.status);
+        if (response.ok) {
+          const data = await response.json();
+          console.log('会话检查结果:', data);
+          
+          if (data.authenticated && data.user) {
+            console.log('用户已登录');
+            setIsLoggedIn(true);
             
-            if (response.ok) {
-              const data = await response.json();
-              console.log('用户信息数据:', data);
-              
-              if (data.authenticated && data.user) {
-                if (data.user.username) {
-                  setUsername(data.user.username);
-                }
-                if (data.user.phoneNumber) {
-                  setUserPhone(data.user.phoneNumber);
-                  console.log('设置用户电话号码:', data.user.phoneNumber);
-                }
-              }
+            // 设置用户信息
+            if (data.user.username) {
+              setUsername(data.user.username);
             }
-          } catch (error) {
-            console.error('获取用户信息失败:', error);
+            if (data.user.phoneNumber) {
+              setUserPhone(data.user.phoneNumber);
+              console.log('设置用户电话号码:', data.user.phoneNumber);
+            }
+          } else {
+            console.log('用户未登录');
+            setIsLoggedIn(false);
           }
+        } else {
+          console.log('用户未登录（API响应非200）');
+          setIsLoggedIn(false);
         }
         
         setIsLoaded(true);
-        
-        // 如果在上传页但未登录，服务器会处理重定向
-        // 这里只设置前端状态
       } catch (error) {
         console.error('检查登录状态失败:', error);
         setIsLoggedIn(false);
@@ -73,12 +62,8 @@ export function Nav() {
       }
     };
     
-    // 设置延迟确保cookie加载完成
-    const timer = setTimeout(() => {
-      checkLoginStatus();
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    // 立即检查登录状态，不需要延迟
+    checkLoginStatus();
   }, [pathname]);  // 添加pathname依赖，确保路由变化时重新检查
   
   // 关闭用户菜单的处理函数
