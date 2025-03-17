@@ -49,7 +49,7 @@ export function Nav() {
             href="/viewer" 
             className={`text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white ${pathname === '/viewer' ? 'font-medium' : ''}`}
           >
-            功能系统
+            上传文件
           </Link>
         </div>
         
