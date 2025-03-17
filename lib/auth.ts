@@ -7,6 +7,8 @@ import { verifySession, getUserById, createSession, deleteSession } from './db';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'login_system_secret_key_7x9z2q8w4e1r5t3y');
 // 会话cookie名称
 const SESSION_COOKIE_NAME = 'auth_session';
+// 固定设置域名，确保在所有环境下都能正常工作
+const COOKIE_DOMAIN = '.mlckq.top';
 
 // 创建JWT令牌
 export async function createToken(userId: string, expiresIn: string = '24h'): Promise<string> {
@@ -40,27 +42,22 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
     
     // 检测环境
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-    const domain = process.env.COOKIE_DOMAIN || undefined;
     
-    console.log(`当前环境: ${isProduction ? '生产环境' : '开发环境'}, 域名: ${domain || '默认'}`);
-    
-    // 设置会话cookie，使用更兼容的设置
+    // 设置会话cookie
     console.log('设置会话cookie');
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: session.id,
       httpOnly: true,
-      // 在生产环境使用secure
       secure: isProduction,
-      // 使用lax提供更好的兼容性，同时保持一定的安全性
       sameSite: 'lax',
-      // 7天有效期
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7天
       path: '/',
-      domain
+      // 明确指定域名，确保cookie在自定义域名下有效
+      domain: COOKIE_DOMAIN
     });
     
-    console.log(`会话cookie设置完成: ${SESSION_COOKIE_NAME}=${session.id}`);
+    console.log(`会话cookie设置完成: ${SESSION_COOKIE_NAME}=${session.id}，域名=${COOKIE_DOMAIN}`);
   } catch (error) {
     console.error('设置认证会话时发生错误:', error);
     throw error;
@@ -70,11 +67,9 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
 // 销毁认证会话
 export async function destroyAuthSession(response: NextResponse): Promise<void> {
   try {
-    // 获取与设置cookie时相同的参数
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-    const domain = process.env.COOKIE_DOMAIN || undefined;
     
-    // 清除会话cookie
+    // 清除会话cookie，使用相同的域名设置
     console.log('清除会话cookie');
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
@@ -84,10 +79,10 @@ export async function destroyAuthSession(response: NextResponse): Promise<void> 
       sameSite: 'lax',
       maxAge: 0,
       path: '/',
-      domain
+      domain: COOKIE_DOMAIN
     });
     
-    console.log('会话cookie已清除');
+    console.log(`会话cookie已清除，域名=${COOKIE_DOMAIN}`);
   } catch (error) {
     console.error('销毁会话时发生错误:', error);
     // 继续执行，确保cookie被清除
