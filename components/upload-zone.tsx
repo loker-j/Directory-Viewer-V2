@@ -113,12 +113,11 @@ export function UploadZone() {
         detail: '上传数据...'
       })
 
-      const response = await fetch('/api/projects', {
+      const response = await fetch('/api/viewer/projects', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        credentials: 'include',
         body: JSON.stringify(directoryData)
       })
 

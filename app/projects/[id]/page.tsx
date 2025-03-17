@@ -112,29 +112,22 @@ export default function ProjectPage({ params }: PageProps) {
     async function fetchProject() {
       try {
         const identifier = decodeURIComponent(params.id);
-        // 使用正确的API端点格式
-        const response = await fetch(`/api/projects/${identifier}`, {
-          credentials: 'include' // 确保包含凭据
-        });
+        // 恢复原来的API端点格式
+        const response = await fetch(`/api/viewer/projects?identifier=${encodeURIComponent(identifier)}`);
         
         if (!response.ok) {
-          if (response.status === 401) {
-            // 未登录则跳转到登录页
-            window.location.href = '/auth/login?redirect=' + encodeURIComponent(window.location.pathname);
-            return;
-          }
           throw new Error('加载项目失败');
         }
         
         const data = await response.json();
         
-        if (!data.project) {
+        if (!data.success || !data.data) {
           throw new Error('项目数据无效');
         }
         
         // 设置项目数据
-        setProject(data.project);
-        console.log('获取到项目数据:', data.project);
+        setProject(data.data);
+        console.log('获取到项目数据:', data.data);
       } catch (error) {
         console.error('获取项目数据失败:', error);
         setError(error instanceof Error ? error.message : '加载失败');
