@@ -89,6 +89,7 @@ export const config = {
   matcher: [
     // 限制中间件只应用于非公开路由和/viewer路径
     '/((?!_next|static|favicon.ico|auth/login|auth/register|api/auth|api/public|api/projects|api/short-url|projects|s).*)',
-    '/viewer'
+    '/viewer',
+    '/viewer/:path*'  // 添加此行以匹配/viewer下的所有路径
   ],
 }; 
