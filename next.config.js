@@ -22,7 +22,8 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_BLOB_PUBLIC_URL: process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL,
-    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN
+    BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
+    COOKIE_DOMAIN: process.env.COOKIE_DOMAIN
   },
   // 禁用严格模式以减少开发时的双重渲染
   reactStrictMode: false,

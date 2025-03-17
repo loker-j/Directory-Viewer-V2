@@ -3,6 +3,8 @@ import { destroyAuthSession } from '@/lib/auth';
 import { deleteSession } from '@/lib/db';
 
 const SESSION_COOKIE_NAME = 'auth_session';
+// 动态设置域名
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;
 
 // 登出接口
 export async function POST(request: NextRequest) {
@@ -29,12 +31,19 @@ export async function POST(request: NextRequest) {
     await destroyAuthSession(response);
     
     // 确保cookie被清除
-    response.cookies.set({
+    const cookieOptions: any = {
       name: SESSION_COOKIE_NAME,
       value: '',
       path: '/',
       maxAge: 0,
-    });
+    };
+    
+    // 仅当存在自定义域名时添加
+    if (COOKIE_DOMAIN) {
+      cookieOptions.domain = COOKIE_DOMAIN;
+    }
+    
+    response.cookies.set(cookieOptions);
     
     console.log('登出完成，会话已销毁');
     return response;

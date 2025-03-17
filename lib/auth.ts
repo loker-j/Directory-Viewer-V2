@@ -7,8 +7,8 @@ import { verifySession, getUserById, createSession, deleteSession } from './db';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'login_system_secret_key_7x9z2q8w4e1r5t3y');
 // 会话cookie名称
 const SESSION_COOKIE_NAME = 'auth_session';
-// 固定设置域名，确保在所有环境下都能正常工作
-const COOKIE_DOMAIN = '.mlckq.top';
+// 动态设置域名，根据环境确定
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN || undefined;  // undefined 时将使用当前域名
 
 // 创建JWT令牌
 export async function createToken(userId: string, expiresIn: string = '24h'): Promise<string> {
@@ -45,7 +45,7 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
     
     // 设置会话cookie
     console.log('设置会话cookie');
-    response.cookies.set({
+    const cookieOptions: any = {
       name: SESSION_COOKIE_NAME,
       value: session.id,
       httpOnly: true,
@@ -53,11 +53,17 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7天
       path: '/',
-      // 明确指定域名，确保cookie在自定义域名下有效
-      domain: COOKIE_DOMAIN
-    });
+    };
     
-    console.log(`会话cookie设置完成: ${SESSION_COOKIE_NAME}=${session.id}，域名=${COOKIE_DOMAIN}`);
+    // 仅当存在自定义域名时添加
+    if (COOKIE_DOMAIN) {
+      cookieOptions.domain = COOKIE_DOMAIN;
+      console.log(`使用自定义域名: ${COOKIE_DOMAIN}`);
+    }
+    
+    response.cookies.set(cookieOptions);
+    
+    console.log(`会话cookie设置完成: ${SESSION_COOKIE_NAME}=${session.id}`);
   } catch (error) {
     console.error('设置认证会话时发生错误:', error);
     throw error;
@@ -71,7 +77,7 @@ export async function destroyAuthSession(response: NextResponse): Promise<void> 
     
     // 清除会话cookie，使用相同的域名设置
     console.log('清除会话cookie');
-    response.cookies.set({
+    const cookieOptions: any = {
       name: SESSION_COOKIE_NAME,
       value: '',
       httpOnly: true,
@@ -79,10 +85,16 @@ export async function destroyAuthSession(response: NextResponse): Promise<void> 
       sameSite: 'lax',
       maxAge: 0,
       path: '/',
-      domain: COOKIE_DOMAIN
-    });
+    };
     
-    console.log(`会话cookie已清除，域名=${COOKIE_DOMAIN}`);
+    // 仅当存在自定义域名时添加
+    if (COOKIE_DOMAIN) {
+      cookieOptions.domain = COOKIE_DOMAIN;
+    }
+    
+    response.cookies.set(cookieOptions);
+    
+    console.log(`会话cookie已清除`);
   } catch (error) {
     console.error('销毁会话时发生错误:', error);
     // 继续执行，确保cookie被清除
