@@ -2,7 +2,9 @@
 const nextConfig = {
   // 启用边缘运行时，以支持更快的响应
   experimental: {
-    serverActions: true
+    serverActions: {
+      allowedOrigins: ['*']
+    }
   },
   // 允许跨域资源共享
   async headers() {
