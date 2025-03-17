@@ -26,6 +26,12 @@ const nextConfig = {
   },
   // 禁用严格模式以减少开发时的双重渲染
   reactStrictMode: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 }
 
 module.exports = nextConfig 

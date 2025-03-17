@@ -4,7 +4,7 @@ import {
   verifyPassword, 
   updateLastLogin, 
   verifyActivationCode, 
-  useActivationCode
+  useActivationCode as markActivationCodeAsUsed
 } from '@/lib/db';
 import { loginSchema } from '@/lib/validation';
 import { 
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       }
       
       // 使用激活码
-      await useActivationCode(activationCode);
+      await markActivationCodeAsUsed(activationCode);
       console.log(`激活码使用成功: ${activationCode}`);
       
       // 激活用户账号（这部分需要实现账号激活的相关功能）

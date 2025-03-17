@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
     console.log(`手机号: ${phoneNumber}, 是否有邀请码: ${!!invitationCode}`);
     
     // 验证邀请码（如果提供）
-    let invitedByUserId: string | undefined = undefined;
     if (invitationCode) {
       console.log(`验证邀请码: ${invitationCode}`);
       const userId = await verifyInvitationCode(invitationCode);
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
         );
       }
       console.log(`邀请码有效，邀请人ID: ${userId}`);
-      invitedByUserId = userId;
+      // 邀请码有效，继续注册流程
     }
     
     // 创建用户
@@ -55,11 +54,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('注册过程中发生错误:', error);
     
     // 处理已存在的用户错误
-    if (error.message === '该手机号已注册') {
+    if (error instanceof Error && error.message === '该手机号已注册') {
       return NextResponse.json(
         { error: '该手机号已注册' },
         { status: 409 }

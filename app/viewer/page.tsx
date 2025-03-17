@@ -39,7 +39,7 @@ export default function Home() {
           <h2 className="text-lg font-semibold">使用方法</h2>
           <ol className="list-decimal space-y-2 text-sm text-muted-foreground inline-block text-left">
             <li>打开百度网盘网页版，找到要分析的文件夹</li>
-            <li>右键点击文件夹，选择"生成目录文件.txt"</li>
+            <li>右键点击文件夹，选择&quot;生成目录文件.txt&quot;</li>
             <li>将生成的 txt 文件上传到本网站</li>
             <li>等待处理完成后即可查看目录结构</li>
           </ol>
