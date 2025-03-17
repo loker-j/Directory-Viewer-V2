@@ -12,6 +12,10 @@ const INVITATION_CODE_PREFIX = 'invitation-codes/';
 // 会话集合前缀
 const SESSION_PREFIX = 'sessions/';
 
+// 项目集合前缀
+const PROJECT_PREFIX = 'projects/';
+const PROJECT_USER_INDEX_PREFIX = 'project-user-index/';
+
 // 创建用户
 export async function createUser(phoneNumber: string, password: string, invitedBy?: string): Promise<User> {
   console.log(`开始创建用户，手机号: ${phoneNumber}`);
@@ -544,4 +548,154 @@ function generateRandomCode(length: number): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
+}
+
+// 获取用户的所有项目
+export async function getUserProjects(userId: string): Promise<any[]> {
+  console.log(`获取用户项目列表, 用户ID: ${userId}`);
+  
+  try {
+    // 查询用户项目索引
+    const userIndexBlobName = `${PROJECT_USER_INDEX_PREFIX}${userId}`;
+    let projectIds: string[] = [];
+    
+    try {
+      // 尝试获取用户项目索引
+      const { blob } = await put(userIndexBlobName, JSON.stringify([]), {
+        contentType: 'application/json',
+        access: 'public',
+        addRandomSuffix: false,
+      });
+      
+      if (blob) {
+        const response = await fetch(blob.url);
+        if (response.ok) {
+          projectIds = await response.json();
+        }
+      }
+    } catch (error) {
+      console.error('获取用户项目索引失败:', error);
+      // 如果索引不存在，则返回空数组
+      return [];
+    }
+    
+    // 如果没有找到项目，返回空数组
+    if (!projectIds || projectIds.length === 0) {
+      return [];
+    }
+    
+    // 获取每个项目的详细信息
+    const projectPromises = projectIds.map(async (projectId) => {
+      const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
+      try {
+        const { blob } = await put(projectBlobName, JSON.stringify({}), {
+          contentType: 'application/json',
+          access: 'public',
+          addRandomSuffix: false,
+        });
+        
+        if (blob) {
+          const response = await fetch(blob.url);
+          if (response.ok) {
+            const project = await response.json();
+            return {
+              ...project,
+              id: projectId
+            };
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error(`获取项目 ${projectId} 详情失败:`, error);
+        return null;
+      }
+    });
+    
+    // 等待所有项目数据获取完成
+    const projectsData = await Promise.all(projectPromises);
+    
+    // 过滤掉获取失败的项目
+    return projectsData.filter(project => project !== null);
+  } catch (error) {
+    console.error('获取用户项目列表失败:', error);
+    return [];
+  }
+}
+
+// 保存项目并关联到用户
+export async function saveProject(userId: string, projectData: any): Promise<{id: string} | null> {
+  console.log(`保存项目, 用户ID: ${userId}`);
+  
+  try {
+    const projectId = uuidv4();
+    const now = new Date().toISOString();
+    
+    const project = {
+      ...projectData,
+      user_id: userId,
+      created_at: now,
+      updated_at: now
+    };
+    
+    // 保存项目数据
+    const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
+    await put(projectBlobName, JSON.stringify(project), {
+      contentType: 'application/json',
+      access: 'public',
+      addRandomSuffix: false,
+    });
+    
+    // 更新用户项目索引
+    await updateUserProjectIndex(userId, projectId);
+    
+    return { id: projectId };
+  } catch (error) {
+    console.error('保存项目失败:', error);
+    return null;
+  }
+}
+
+// 更新用户的项目索引
+async function updateUserProjectIndex(userId: string, projectId: string): Promise<boolean> {
+  try {
+    // 获取用户项目索引
+    const userIndexBlobName = `${PROJECT_USER_INDEX_PREFIX}${userId}`;
+    let projectIds: string[] = [];
+    
+    try {
+      // 尝试获取现有索引
+      const { blob } = await put(userIndexBlobName, JSON.stringify([]), {
+        contentType: 'application/json',
+        access: 'public',
+        addRandomSuffix: false,
+      });
+      
+      if (blob) {
+        const response = await fetch(blob.url);
+        if (response.ok) {
+          projectIds = await response.json();
+        }
+      }
+    } catch (error) {
+      // 如果索引不存在，使用空数组
+      projectIds = [];
+    }
+    
+    // 添加新项目ID（如果不存在）
+    if (!projectIds.includes(projectId)) {
+      projectIds.unshift(projectId); // 在数组开头添加，以便最新的项目排在前面
+    }
+    
+    // 保存更新后的索引
+    await put(userIndexBlobName, JSON.stringify(projectIds), {
+      contentType: 'application/json',
+      access: 'public',
+      addRandomSuffix: false,
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('更新用户项目索引失败:', error);
+    return false;
+  }
 }

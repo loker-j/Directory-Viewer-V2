@@ -12,6 +12,8 @@ export function Nav() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [username, setUsername] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
   
   // 在客户端检查登录状态
   useEffect(() => {
@@ -25,6 +27,24 @@ export function Nav() {
         console.log('导航组件检测到会话状态:', hasValidSession ? '已登录' : '未登录');
         
         setIsLoggedIn(hasValidSession);
+        
+        // 如果已登录，获取用户信息
+        if (hasValidSession) {
+          try {
+            const response = await fetch('/api/auth/check-session', {
+              credentials: 'include'
+            });
+            if (response.ok) {
+              const data = await response.json();
+              if (data.user && data.user.username) {
+                setUsername(data.user.username);
+              }
+            }
+          } catch (error) {
+            console.error('获取用户信息失败:', error);
+          }
+        }
+        
         setIsLoaded(true);
         
         // 如果在上传页但未登录，服务器会处理重定向
@@ -43,6 +63,21 @@ export function Nav() {
     
     return () => clearTimeout(timer);
   }, [pathname]);  // 添加pathname依赖，确保路由变化时重新检查
+  
+  // 关闭用户菜单的处理函数
+  const handleClickOutside = () => {
+    setShowUserMenu(false);
+  };
+  
+  // 添加点击外部关闭菜单的事件监听
+  useEffect(() => {
+    if (showUserMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showUserMenu]);
   
   return (
     <nav className="bg-white shadow-sm dark:bg-gray-800">
@@ -65,50 +100,75 @@ export function Nav() {
           >
             上传文件
           </Link>
+          
+          {isLoggedIn && (
+            <Link 
+              href="/projects" 
+              className={`text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white ${pathname.startsWith('/projects') ? 'font-medium' : ''}`}
+            >
+              我的项目
+            </Link>
+          )}
         </div>
         
         <div className="flex items-center space-x-4">
           {isLoaded && (
             isLoggedIn ? (
-              <>
+              <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button 
-                  onClick={async () => {
-                    try {
-                      await fetch('/api/auth/logout', { 
-                        method: 'POST',
-                        credentials: 'include' // 确保发送cookies
-                      });
-                      // 清除客户端状态
-                      setIsLoggedIn(false);
-                      // 强制刷新页面以确保所有状态都重置
-                      window.location.href = '/';
-                    } catch (error) {
-                      console.error('退出登录失败:', error);
-                    }
-                  }}
-                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                 >
-                  退出登录
+                  <span className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white">
+                    {username.charAt(0).toUpperCase()}
+                  </span>
+                  <span>{username || '用户'}</span>
                 </button>
-              </>
+                
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+                    <Link 
+                      href="/projects" 
+                      className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      我的项目
+                    </Link>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          await fetch('/api/auth/logout', { 
+                            method: 'POST',
+                            credentials: 'include' // 确保发送cookies
+                          });
+                          // 清除客户端状态
+                          setIsLoggedIn(false);
+                          // 强制刷新页面以确保所有状态都重置
+                          window.location.href = '/';
+                        } catch (error) {
+                          console.error('退出登录失败:', error);
+                        }
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      退出登录
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
-                {pathname === '/' && (
-                  <>
-                    <Link 
-                      href="/auth/login" 
-                      className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-                    >
-                      登录
-                    </Link>
-                    <Link 
-                      href="/auth/register" 
-                      className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                    >
-                      注册
-                    </Link>
-                  </>
-                )}
+                <Link 
+                  href="/auth/login" 
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                >
+                  登录
+                </Link>
+                <Link 
+                  href="/auth/register" 
+                  className="text-sm px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  注册
+                </Link>
               </>
             )
           )}
