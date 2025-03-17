@@ -7,10 +7,8 @@ import { Nav } from '@/components/nav';
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   
-  // 在客户端加载时确认会话状态
   useEffect(() => {
-    // 页面加载完成后设置状态
-    console.log('上传页面加载完成');
+    // 简单设置加载状态，不进行登录检测
     setIsLoaded(true);
   }, []);
   

@@ -38,16 +38,26 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
     const session = await createSession(userId);
     console.log(`会话创建成功: ${session.id}`);
     
-    // 设置会话cookie
+    // 检测环境
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+    const domain = process.env.COOKIE_DOMAIN || undefined;
+    
+    console.log(`当前环境: ${isProduction ? '生产环境' : '开发环境'}, 域名: ${domain || '默认'}`);
+    
+    // 设置会话cookie，使用更兼容的设置
     console.log('设置会话cookie');
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: session.id,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // 开发环境不需要secure
-      sameSite: 'lax', // 使用lax而不是strict，允许跨站点请求时保留cookie
-      maxAge: 60 * 60 * 24, // 24小时
+      // 在生产环境使用secure
+      secure: isProduction,
+      // 使用lax提供更好的兼容性，同时保持一定的安全性
+      sameSite: 'lax',
+      // 7天有效期
+      maxAge: 60 * 60 * 24 * 7,
       path: '/',
+      domain
     });
     
     console.log(`会话cookie设置完成: ${SESSION_COOKIE_NAME}=${session.id}`);
@@ -60,17 +70,21 @@ export async function setAuthSession(userId: string, response: NextResponse): Pr
 // 销毁认证会话
 export async function destroyAuthSession(response: NextResponse): Promise<void> {
   try {
-    // 不再从cookieStore获取sessionId
-    // 只负责清除响应中的cookie
+    // 获取与设置cookie时相同的参数
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+    const domain = process.env.COOKIE_DOMAIN || undefined;
+    
+    // 清除会话cookie
     console.log('清除会话cookie');
     response.cookies.set({
       name: SESSION_COOKIE_NAME,
       value: '',
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isProduction,
       sameSite: 'lax',
       maxAge: 0,
       path: '/',
+      domain
     });
     
     console.log('会话cookie已清除');
