@@ -561,14 +561,15 @@ export async function getUserProjects(userId: string): Promise<any[]> {
     
     try {
       // 尝试获取用户项目索引
-      const { blob } = await put(userIndexBlobName, JSON.stringify([]), {
+      const result = await put(userIndexBlobName, JSON.stringify([]), {
         contentType: 'application/json',
         access: 'public',
         addRandomSuffix: false,
       });
       
-      if (blob) {
-        const response = await fetch(blob.url);
+      const url = result.url;
+      if (url) {
+        const response = await fetch(url);
         if (response.ok) {
           projectIds = await response.json();
         }
@@ -588,14 +589,15 @@ export async function getUserProjects(userId: string): Promise<any[]> {
     const projectPromises = projectIds.map(async (projectId) => {
       const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
       try {
-        const { blob } = await put(projectBlobName, JSON.stringify({}), {
+        const result = await put(projectBlobName, JSON.stringify({}), {
           contentType: 'application/json',
           access: 'public',
           addRandomSuffix: false,
         });
         
-        if (blob) {
-          const response = await fetch(blob.url);
+        const url = result.url;
+        if (url) {
+          const response = await fetch(url);
           if (response.ok) {
             const project = await response.json();
             return {
@@ -664,14 +666,15 @@ async function updateUserProjectIndex(userId: string, projectId: string): Promis
     
     try {
       // 尝试获取现有索引
-      const { blob } = await put(userIndexBlobName, JSON.stringify([]), {
+      const result = await put(userIndexBlobName, JSON.stringify([]), {
         contentType: 'application/json',
         access: 'public',
         addRandomSuffix: false,
       });
       
-      if (blob) {
-        const response = await fetch(blob.url);
+      const url = result.url;
+      if (url) {
+        const response = await fetch(url);
         if (response.ok) {
           projectIds = await response.json();
         }
@@ -697,5 +700,81 @@ async function updateUserProjectIndex(userId: string, projectId: string): Promis
   } catch (error) {
     console.error('更新用户项目索引失败:', error);
     return false;
+  }
+}
+
+// 获取指定项目详情
+export async function getProjectById(projectId: string): Promise<any | null> {
+  console.log(`获取项目详情, 项目ID: ${projectId}`);
+  
+  try {
+    const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
+    
+    try {
+      // 尝试获取项目数据
+      const result = await put(projectBlobName, JSON.stringify({}), {
+        contentType: 'application/json',
+        access: 'public',
+        addRandomSuffix: false,
+      });
+      
+      const url = result.url;
+      if (url) {
+        const response = await fetch(url);
+        if (response.ok) {
+          const project = await response.json();
+          return {
+            ...project,
+            id: projectId
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`获取项目详情失败: ${projectId}`, error);
+      return null;
+    }
+  } catch (error) {
+    console.error(`获取项目详情失败: ${projectId}`, error);
+    return null;
+  }
+}
+
+// 更新项目信息
+export async function updateProject(projectId: string, updateData: any): Promise<any | null> {
+  console.log(`更新项目, 项目ID: ${projectId}`);
+  
+  try {
+    // 首先获取当前项目数据
+    const currentProject = await getProjectById(projectId);
+    
+    if (!currentProject) {
+      console.error(`更新失败: 未找到项目 ${projectId}`);
+      return null;
+    }
+    
+    // 合并更新数据
+    const updatedProject = {
+      ...currentProject,
+      ...updateData,
+      updated_at: new Date().toISOString()
+    };
+    
+    // 保存更新后的项目数据
+    const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
+    const result = await put(projectBlobName, JSON.stringify(updatedProject), {
+      contentType: 'application/json',
+      access: 'public',
+      addRandomSuffix: false,
+    });
+    
+    return {
+      ...updatedProject,
+      id: projectId
+    };
+  } catch (error) {
+    console.error(`更新项目失败: ${projectId}`, error);
+    return null;
   }
 }

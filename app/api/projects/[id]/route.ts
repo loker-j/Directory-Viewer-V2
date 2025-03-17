@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { getProjectById, updateProject } from '@/lib/db';
 
-// 模拟数据
+// 模拟数据（仅供参考，实际使用真实数据）
 const mockProjects = [
   {
     id: '1',
@@ -114,13 +115,21 @@ export async function GET(
   }
   
   try {
-    // 查找项目
-    const project = mockProjects.find(p => p.id === params.id);
+    // 从数据库获取项目
+    const project = await getProjectById(params.id);
     
     if (!project) {
       return NextResponse.json(
         { error: '项目不存在' },
         { status: 404 }
+      );
+    }
+    
+    // 验证项目所有权
+    if (project.user_id !== currentUser.user.id) {
+      return NextResponse.json(
+        { error: '没有权限访问此项目' },
+        { status: 403 }
       );
     }
     
@@ -161,25 +170,40 @@ export async function PATCH(
       );
     }
     
-    // 查找项目
-    const projectIndex = mockProjects.findIndex(p => p.id === params.id);
+    // 获取项目
+    const project = await getProjectById(params.id);
     
-    if (projectIndex === -1) {
+    if (!project) {
       return NextResponse.json(
         { error: '项目不存在' },
         { status: 404 }
       );
     }
     
-    // 更新项目名称
-    mockProjects[projectIndex].name = body.name.trim();
+    // 验证项目所有权
+    if (project.user_id !== currentUser.user.id) {
+      return NextResponse.json(
+        { error: '没有权限修改此项目' },
+        { status: 403 }
+      );
+    }
+    
+    // 更新项目
+    const updatedProject = await updateProject(params.id, { name: body.name.trim() });
+    
+    if (!updatedProject) {
+      return NextResponse.json(
+        { error: '更新项目失败' },
+        { status: 500 }
+      );
+    }
     
     return NextResponse.json({ 
       success: true, 
       project: {
-        id: mockProjects[projectIndex].id,
-        name: mockProjects[projectIndex].name,
-        shortUrl: mockProjects[projectIndex].shortUrl
+        id: updatedProject.id,
+        name: updatedProject.name,
+        shortUrl: updatedProject.shortUrl
       }
     });
   } catch (error) {

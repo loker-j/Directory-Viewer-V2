@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { getUserProjects } from '@/lib/db';
 
-// 模拟数据
+// 模拟数据，仅在未实现实际数据获取时使用
 const mockProjects = [
   {
     id: '1',
@@ -41,8 +42,12 @@ export async function GET(request: NextRequest) {
   }
   
   try {
-    // 返回模拟数据
-    return NextResponse.json({ projects: mockProjects });
+    // 从数据库获取真实的用户项目
+    const projects = await getUserProjects(currentUser.user.id);
+    console.log(`获取到用户 ${currentUser.user.id} 的项目:`, projects.length || 0);
+    
+    // 返回真实项目数据
+    return NextResponse.json({ projects });
   } catch (error) {
     console.error('处理项目列表请求失败:', error);
     return NextResponse.json(
