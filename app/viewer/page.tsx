@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { UploadZone } from '@/components/upload-zone';
-import { Nav } from '@/components/nav';
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -14,7 +13,6 @@ export default function Home() {
   
   return (
     <>
-      <Nav />
       <main className="container mx-auto p-4 space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">目录结构查看器</h1>

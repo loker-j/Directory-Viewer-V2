@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Nav } from '@/components/nav';
 
 interface Project {
   id: string;
@@ -97,7 +96,6 @@ export default function ProjectsPage() {
 
   return (
     <>
-      <Nav />
       <main className="container mx-auto p-4 space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">我的项目</h1>
