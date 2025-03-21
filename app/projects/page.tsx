@@ -49,6 +49,62 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [router]);
 
+  // 为项目查找短链接
+  useEffect(() => {
+    const fetchShortUrls = async () => {
+      if (!projects.length) return;
+      
+      try {
+        console.log('开始获取短链接索引');
+        // 获取短链接索引
+        const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL || ''}/short-urls/index.json`;
+        console.log('短链接索引URL:', indexUrl);
+        
+        const response = await fetch(indexUrl);
+        
+        if (response.ok) {
+          const index = await response.json();
+          console.log('获取到短链接索引');
+          
+          // 为每个项目找到对应的短链接
+          const updatedProjects = projects.map(project => {
+            // 构建项目的完整URL
+            const projectUrl = `${window.location.origin}/projects/${project.id}`;
+            console.log(`查找项目 ${project.name} 的短链接, 项目URL:`, projectUrl);
+            
+            // 在索引中查找对应的shortId
+            const entry = Object.entries(index).find(
+              ([_, url]) => url === projectUrl
+            );
+            
+            const shortId = entry?.[0];
+            
+            // 如果找到，构建完整短链接
+            const shortUrl = shortId 
+              ? `${window.location.origin}/s/${shortId}` 
+              : project.shortUrl; // 保留可能已有的shortUrl
+              
+            if (shortId) {
+              console.log(`找到项目 ${project.name} 的短链接: ${shortUrl}`);
+            } else {
+              console.log(`未找到项目 ${project.name} 的短链接`);
+            }
+            
+            return { ...project, shortUrl };
+          });
+          
+          setProjects(updatedProjects);
+        } else {
+          console.error('获取短链接索引失败:', response.status);
+        }
+      } catch (error) {
+        console.error('获取短链接索引失败:', error);
+      }
+    };
+    
+    fetchShortUrls();
+  }, [projects.length]);
+
   const startEditing = (project: Project) => {
     setEditingId(project.id);
     setNewName(project.name);
