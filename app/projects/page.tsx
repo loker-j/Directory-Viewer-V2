@@ -54,6 +54,13 @@ export default function ProjectsPage() {
     const fetchShortUrls = async () => {
       if (!projects.length) return;
       
+      // 检查是否已经查找过短链接，避免循环
+      const alreadyHasShortUrls = projects.some(p => p.shortUrl);
+      if (alreadyHasShortUrls) {
+        console.log('项目已有短链接，跳过查找');
+        return;
+      }
+      
       try {
         console.log('开始获取短链接索引');
         // 获取短链接索引
@@ -64,38 +71,51 @@ export default function ProjectsPage() {
         
         if (response.ok) {
           const index = await response.json();
-          console.log('获取到短链接索引');
+          console.log('获取到短链接索引:', index);
           
-          // 为每个项目找到对应的短链接
+          let foundAny = false;
+          // 为每个项目找到对应的短链接 - 尝试多种URL格式
           const updatedProjects = projects.map(project => {
-            // 构建项目的完整URL
-            const projectUrl = `${window.location.origin}/projects/${project.id}`;
-            console.log(`查找项目 ${project.name} 的短链接, 项目URL:`, projectUrl);
+            // 构建与详情页相同格式的原始URL
+            const originalUrl = `${window.location.origin}/projects/${project.id}`;
+            console.log(`查找项目 ${project.name} 的短链接, 原始URL:`, originalUrl);
             
-            // 在索引中查找对应的shortId
-            const entry = Object.entries(index).find(
-              ([_, url]) => url === projectUrl
-            );
-            
-            const shortId = entry?.[0];
+            // 使用与详情页相同的精确匹配逻辑
+            const existingId = Object.entries(index).find(([_, url]) => url === originalUrl)?.[0];
             
             // 如果找到，构建完整短链接
-            const shortUrl = shortId 
-              ? `${window.location.origin}/s/${shortId}` 
-              : project.shortUrl; // 保留可能已有的shortUrl
+            const shortUrl = existingId 
+              ? `${window.location.origin}/s/${existingId}` 
+              : null; // 不保留旧值，确保要么找到有效的短链接，要么为null
               
-            if (shortId) {
+            if (existingId) {
               console.log(`找到项目 ${project.name} 的短链接: ${shortUrl}`);
+              foundAny = true;
             } else {
-              console.log(`未找到项目 ${project.name} 的短链接`);
+              console.log(`未找到项目 ${project.name} 的短链接，尝试备用方案...`);
+              
+              // 备用方案：查找任何包含项目ID的URL
+              for (const [id, url] of Object.entries(index)) {
+                const urlString = url.toString();
+                if (urlString.includes(project.id)) {
+                  const backupShortUrl = `${window.location.origin}/s/${id}`;
+                  console.log(`找到备用短链接: ${backupShortUrl}`);
+                  return { ...project, shortUrl: backupShortUrl };
+                }
+              }
             }
             
             return { ...project, shortUrl };
           });
           
-          setProjects(updatedProjects);
+          if (foundAny) {
+            setProjects(updatedProjects);
+            console.log('已更新项目列表，添加了短链接');
+          } else {
+            console.log('未找到任何项目的短链接');
+          }
         } else {
-          console.error('获取短链接索引失败:', response.status);
+          console.error('获取短链接索引失败，状态码:', response.status);
         }
       } catch (error) {
         console.error('获取短链接索引失败:', error);
@@ -103,7 +123,7 @@ export default function ProjectsPage() {
     };
     
     fetchShortUrls();
-  }, [projects.length]);
+  }, [projects]); // 依赖于projects，但内部有条件避免循环
 
   const startEditing = (project: Project) => {
     setEditingId(project.id);
