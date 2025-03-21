@@ -200,8 +200,9 @@ export default function ProjectsPage() {
                       </button>
                     )}
                     <Link
-                      href={`/projects/${project.id}`}
+                      href={project.shortUrl || `/projects/${project.id}`}
                       className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center"
+                      target={project.shortUrl ? "_blank" : "_self"}
                     >
                       查看
                       <svg className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
