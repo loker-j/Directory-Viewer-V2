@@ -76,8 +76,16 @@ export default function ProjectsPage() {
           let foundAny = false;
           // 为每个项目找到对应的短链接 - 尝试多种URL格式
           const updatedProjects = projects.map(project => {
-            // 构建与详情页相同格式的原始URL
-            const originalUrl = `${window.location.origin}/projects/${project.id}`;
+            // 判断项目ID是否为URL (大文件情况)
+            let originalUrl;
+            if (project.id.startsWith('http')) {
+              // 大文件情况：ID本身就是URL，直接用作原始URL
+              originalUrl = project.id;
+              console.log(`项目 ${project.name} 使用大文件URL作为原始URL`);
+            } else {
+              // 小文件情况：构建与详情页相同格式的原始URL
+              originalUrl = `${window.location.origin}/projects/${project.id}`;
+            }
             console.log(`查找项目 ${project.name} 的短链接, 原始URL:`, originalUrl);
             
             // 使用与详情页相同的精确匹配逻辑
@@ -146,7 +154,13 @@ export default function ProjectsPage() {
   // 调试函数：处理点击事件
   const handleViewClick = (project: Project, e: React.MouseEvent) => {
     console.log(`点击查看按钮: ${project.name}`);
-    console.log(`- 使用URL: ${project.shortUrl || `/projects/${project.id}`}`);
+    
+    // 检查项目ID是否为URL (大文件情况)
+    const projectUrl = project.id.startsWith('http') 
+      ? `/projects/${encodeURIComponent(project.id)}` 
+      : `/projects/${project.id}`;
+      
+    console.log(`- 使用URL: ${project.shortUrl || projectUrl}`);
     
     // 如果没有短链接或短链接格式不对，阻止默认行为并提醒
     const validShortUrl = project.shortUrl && project.shortUrl.includes('/s/');
@@ -309,7 +323,7 @@ export default function ProjectsPage() {
                       </button>
                     )}
                     <Link
-                      href={project.shortUrl || `/projects/${project.id}`}
+                      href={project.shortUrl || (project.id.startsWith('http') ? `/projects/${encodeURIComponent(project.id)}` : `/projects/${project.id}`)}
                       className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center"
                       target={project.shortUrl ? "_blank" : "_self"}
                       onClick={(e) => handleViewClick(project, e)}
