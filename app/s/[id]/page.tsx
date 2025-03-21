@@ -32,8 +32,8 @@ export default async function ShortUrlPage({ params }: PageProps) {
   const projectIdMatch = originalUrl.match(/\/projects\/([^/?&#]+)/);
   if (projectIdMatch && projectIdMatch[1]) {
     const projectId = projectIdMatch[1];
-    // 重定向到公开访问的项目页面而不是原始URL
-    redirect(`/public/projects/${projectId}`);
+    // 重定向到公开访问的项目页面，并将短链接ID作为查询参数传递
+    redirect(`/public/projects/${projectId}?shortId=${params.id}`);
   }
   
   // 如果URL不是项目URL，则使用原始重定向

@@ -44,6 +44,21 @@ export default function PublicProjectPage({ params }: PageProps) {
   }
 
   useEffect(() => {
+    // 从URL查询参数中获取短链接ID
+    const checkQueryParams = () => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const shortId = params.get('shortId');
+        if (shortId) {
+          console.log('从URL查询参数获取短链接ID:', shortId);
+          const fullShortUrl = `${window.location.origin}/s/${shortId}`;
+          setShortUrl(fullShortUrl);
+        }
+      }
+    };
+    
+    checkQueryParams();
+    
     async function fetchProject() {
       try {
         const identifier = decodeURIComponent(params.id)
