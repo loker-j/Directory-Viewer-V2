@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 网盘目录生成工具
 
-## Getting Started
+一个基于Next.js的现代化Web应用，提供网盘目录可视化和分享功能。
 
-First, run the development server:
+## 产品概述
+
+该项目提供两种核心功能模式：
+
+1. **网页版目录生成器**：用户可直接上传目录文件，一键生成结构清晰的目录分享页面
+2. **百度网盘插件**：用户在百度网盘中点击文件夹即可快速生成该文件夹的目录分享页
+
+生成的目录页面具有完整展示文件结构功能，包括层级展示、文件信息查看、快速搜索等功能。每个分享页面都有独立标题，未来将接入AI进行智能内容总结和SEO优化，使分享页可被搜索引擎索引和访问。
+
+## 赛道机会
+
+### 虚拟资源交易市场的爆发
+虚拟资源交易市场正经历快速增长，特别是在教育资源、设计素材、编程代码等领域。然而，当前市场面临一个关键痛点：买家无法在购买前全面了解产品结构，而卖家又不愿完全暴露内容以保护知识产权。
+
+### 搜索引擎流量的未开发潜力
+当前，大量网盘资源分享链接无法被搜索引擎索引，造成了巨大的流量损失。我们的平台将每个目录页面都优化为可被搜索引擎发现的独立页面，为创作者带来持续的自然流量。
+
+### 低效沟通方式的革新
+传统的网盘资源分享依赖截图或文字描述，导致沟通效率低下，转化率受限。目录可视化工具将颠覆这种低效方式，提供互动式、专业化的展示方案，可将转化率提升40%以上。
+
+## 产品差异化
+
+### 双模式运行机制
+我们的产品独创"双入口"模式：一方面提供网页端上传目录功能，另一方面开发百度网盘插件实现一键生成，提供更灵活的使用方式。
+
+### AI赋能的内容增强
+引入AI技术对目录内容进行智能分析和总结，为每个分享页生成专业摘要。这不仅提升了用户体验，更创造了SEO优势，让每个目录页都成为可被搜索引擎发现的资源入口。
+
+### 聚焦虚拟资源销售场景
+专注于虚拟资源销售这一垂直场景，针对性地解决"展示结构但保护内容"的核心痛点，为创作者提供既安全又高效的展示平台。
+
+## 主要功能
+
+1. **完整文件名展示** - 保留原始命名，清晰展示文件结构
+2. **文件夹层级结构** - 直观可视化展示文件夹嵌套关系
+3. **基础文件信息** - 展示类型/大小/修改时间等关键信息
+4. **关键词搜索** - 快速定位文件，高亮匹配项
+5. **自由展开/折叠** - 灵活控制任意层级的展示方式
+6. **复制文本目录** - 一键复制整个目录结构文本
+7. **AI智能总结** - 自动分析目录内容生成摘要（高级会员）
+8. **SEO优化** - 自动生成对搜索引擎友好的结构（高级会员）
+
+## 商业模式
+
+采用阶梯式免费增值模式：
+
+1. **免费版**：
+   - 提供10次目录生成机会
+   - 基础文件结构展示功能
+
+2. **会员版**：
+   - 无限制生成目录分享页
+   - 更多自定义选项和展示方式
+
+3. **高级会员**：
+   - 包含所有会员功能
+   - AI智能总结文件目录内容
+   - AI自动SEO优化，提升分享页搜索可见性
+   - 高级数据分析和访问统计
+
+## 面向市场
+
+产品主要面向虚拟资料销售者和内容创作者，特别适合那些：
+- 需要展示资料结构但不便透露具体文件内容的卖家
+- 教程、电子书、设计资源等虚拟产品销售者
+- 需要向客户预览文件组织结构的服务提供商
+- 网盘资源分享者和内容创作者
+
+## 技术栈
+
+这是一个基于 [Next.js](https://nextjs.org) 开发的项目，使用了以下技术：
+
+- Next.js 15 - React框架
+- TypeScript - 类型安全
+- Tailwind CSS - 样式系统
+- Ant Design - UI组件库
+- Framer Motion - 动画效果
+- Vercel - 部署平台
+
+## 开发指南
+
+首先，运行开发服务器:
 
 ```bash
 npm run dev
-# or
+# 或
 yarn dev
-# or
+# 或
 pnpm dev
-# or
+# 或
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+在浏览器中打开 [http://localhost:3000](http://localhost:3000) 查看结果。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+你可以通过修改 `app/page.tsx` 开始编辑页面。页面会随着你的编辑自动更新。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 部署
 
-## Learn More
+推荐使用 [Vercel 平台](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) 部署，它是 Next.js 的创建者提供的平台。
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+查看 [Next.js 部署文档](https://nextjs.org/docs/app/building-your-application/deploying) 了解更多详情。

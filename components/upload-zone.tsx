@@ -113,6 +113,7 @@ export function UploadZone() {
         detail: '上传数据...'
       })
 
+      // 先上传到公共存储（无需登录即可访问）
       const response = await fetch('/api/viewer/projects', {
         method: 'POST',
         headers: {
@@ -131,6 +132,41 @@ export function UploadZone() {
       if (!result.success || !result.identifier) {
         throw new Error('处理失败')
       }
+      
+      const identifier = result.identifier;
+      
+      // 将项目同时保存到用户的项目列表中（需要登录）
+      try {
+        setProgressStatus({
+          stage: '处理数据',
+          progress: 75,
+          detail: '添加到项目列表...'
+        })
+        
+        // 尝试将项目添加到用户的项目列表
+        const saveToProjectsResponse = await fetch('/api/projects', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include', // 重要：需要发送 cookies 以验证用户身份
+          body: JSON.stringify({
+            name: directoryData.name,
+            size: directoryData.size,
+            itemCount: directoryData.itemCount,
+            data: directoryData.data,
+            // 添加一个引用字段，指向公共存储的标识符
+            publicIdentifier: identifier
+          })
+        })
+        
+        console.log('项目列表保存结果:', saveToProjectsResponse.status);
+        
+        // 即使保存到项目列表失败，也继续流程（用户仍然可以查看目录页）
+      } catch (saveError) {
+        console.error('保存到项目列表失败:', saveError);
+        // 继续流程，不中断
+      }
 
       setProgressStatus({
         stage: '完成',
@@ -139,7 +175,7 @@ export function UploadZone() {
       })
 
       await new Promise(resolve => setTimeout(resolve, 1000))
-      router.push(`/projects/${encodeURIComponent(result.identifier)}`)
+      router.push(`/projects/${encodeURIComponent(identifier)}`)
     } catch (error) {
       console.error('处理文件时出错:', error)
       throw error
