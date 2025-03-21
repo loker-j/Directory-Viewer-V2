@@ -832,3 +832,126 @@ export async function updateProject(projectId: string, updateData: any): Promise
     return null;
   }
 }
+
+// 删除项目
+export async function deleteProject(projectId: string): Promise<boolean> {
+  console.log(`删除项目, 项目ID: ${projectId}`);
+  
+  try {
+    // 获取项目数据，以确认用户ID和短链接ID
+    const project = await getProjectById(projectId);
+    
+    if (!project) {
+      console.log(`项目 ${projectId} 不存在，无需删除`);
+      return true;
+    }
+    
+    const userId = project.user_id;
+    const shortId = project.short_id;
+    
+    // 1. 从用户的项目索引中移除项目
+    if (userId) {
+      console.log(`从用户 ${userId} 的项目索引中移除项目 ${projectId}`);
+      await removeProjectFromUserIndex(userId, projectId);
+    }
+    
+    // 2. 如果有短链接，从短链接索引中移除
+    if (shortId) {
+      console.log(`删除项目相关的短链接 ${shortId}`);
+      await deleteShortUrl(shortId);
+    }
+    
+    // 3. 删除项目数据
+    const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
+    await del(projectBlobName);
+    console.log(`项目数据删除成功: ${projectBlobName}`);
+    
+    return true;
+  } catch (error) {
+    console.error('删除项目失败:', error);
+    return false;
+  }
+}
+
+// 从用户项目索引中移除项目
+async function removeProjectFromUserIndex(userId: string, projectId: string): Promise<boolean> {
+  try {
+    // 获取用户当前的项目索引
+    const userIndexBlobName = `${PROJECT_USER_INDEX_PREFIX}${userId}`;
+    const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${userIndexBlobName}`;
+    
+    let projectIds: string[] = [];
+    try {
+      const response = await fetch(indexUrl);
+      if (response.ok) {
+        projectIds = await response.json();
+      }
+    } catch (error) {
+      console.error('获取用户项目索引失败:', error);
+      return false;
+    }
+    
+    // 如果索引不存在或为空，无需更新
+    if (!projectIds || projectIds.length === 0) {
+      return true;
+    }
+    
+    // 从索引中移除项目ID
+    const updatedProjectIds = projectIds.filter(id => id !== projectId);
+    
+    // 更新索引
+    await put(userIndexBlobName, JSON.stringify(updatedProjectIds), {
+      contentType: 'application/json',
+      access: 'public',
+      addRandomSuffix: false,
+    });
+    
+    console.log(`已从用户 ${userId} 的项目索引中移除项目 ${projectId}`);
+    return true;
+  } catch (error) {
+    console.error('从用户项目索引中移除项目失败:', error);
+    return false;
+  }
+}
+
+// 删除短链接
+async function deleteShortUrl(shortId: string): Promise<boolean> {
+  try {
+    // 1. 删除短链接数据
+    const shortUrlBlobName = `short-urls/${shortId}.json`;
+    await del(shortUrlBlobName);
+    console.log(`短链接数据删除成功: ${shortUrlBlobName}`);
+    
+    // 2. 从短链接索引中移除
+    try {
+      const indexPath = 'short-urls/index.json';
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${indexPath}`;
+      
+      const indexResponse = await fetch(indexUrl);
+      if (indexResponse.ok) {
+        const index = await indexResponse.json() as Record<string, string>;
+        
+        // 检查短链接是否在索引中
+        if (index[shortId]) {
+          // 删除短链接条目
+          delete index[shortId];
+          
+          // 更新索引
+          await put(indexPath, JSON.stringify(index), {
+            access: 'public',
+            addRandomSuffix: false
+          });
+          console.log(`短链接 ${shortId} 已从索引中移除`);
+        }
+      }
+    } catch (error) {
+      console.error('从索引中移除短链接失败:', error);
+      // 继续执行，即使索引更新失败
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('删除短链接失败:', error);
+    return false;
+  }
+}

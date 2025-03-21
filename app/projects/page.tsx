@@ -17,6 +17,8 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newName, setNewName] = useState<string>('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -218,6 +220,38 @@ export default function ProjectsPage() {
     }
   };
 
+  const confirmDelete = (projectId: string) => {
+    setConfirmDeleteId(projectId);
+  };
+
+  const cancelDelete = () => {
+    setConfirmDeleteId(null);
+  };
+
+  const deleteProject = async (projectId: string) => {
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        // 删除成功，从列表中移除
+        setProjects(projects.filter(p => p.id !== projectId));
+        setConfirmDeleteId(null);
+      } else {
+        const data = await response.json();
+        throw new Error(data.error || '删除项目失败');
+      }
+    } catch (err) {
+      console.error('删除项目出错:', err);
+      // 可以增加一个错误提示
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
@@ -240,6 +274,41 @@ export default function ProjectsPage() {
             创建新项目
           </Link>
         </div>
+
+        {/* 确认删除对话框 */}
+        {confirmDeleteId && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">确认删除</h3>
+              <p className="text-gray-500 mb-6">
+                您确定要永久删除此项目吗？此操作将删除所有相关数据，包括短链接，且无法恢复。
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md"
+                  disabled={isDeleting}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => deleteProject(confirmDeleteId)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md flex items-center"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      删除中...
+                    </>
+                  ) : (
+                    '确认删除'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="py-12 text-center">
@@ -333,6 +402,16 @@ export default function ProjectsPage() {
                         <span className="text-sm">复制短链</span>
                       </button>
                     )}
+                    <button
+                      onClick={() => confirmDelete(project.id)}
+                      className="p-1 text-gray-500 hover:text-red-500 flex items-center"
+                      title="删除项目"
+                    >
+                      <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="text-sm">删除</span>
+                    </button>
                     <Link
                       href={
                         project.shortUrl 

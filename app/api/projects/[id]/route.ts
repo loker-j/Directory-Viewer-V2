@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getProjectById, updateProject } from '@/lib/db';
+import { getProjectById, updateProject, deleteProject } from '@/lib/db';
 
 // 模拟数据（仅供参考，实际使用真实数据）
 const mockProjects = [
@@ -210,6 +210,62 @@ export async function PATCH(
     });
   } catch (error) {
     console.error('更新项目名称失败:', error);
+    return NextResponse.json(
+      { error: '服务器内部错误' },
+      { status: 500 }
+    );
+  }
+}
+
+// 删除项目
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  // 获取当前登录用户
+  const currentUser = await getCurrentUser(request);
+  
+  if (!currentUser || !currentUser.user) {
+    return NextResponse.json(
+      { error: '用户未登录或会话已过期' },
+      { status: 401 }
+    );
+  }
+  
+  try {
+    // 获取项目
+    const project = await getProjectById(params.id);
+    
+    if (!project) {
+      return NextResponse.json(
+        { error: '项目不存在' },
+        { status: 404 }
+      );
+    }
+    
+    // 验证项目所有权
+    if (project.user_id !== currentUser.user.id) {
+      return NextResponse.json(
+        { error: '没有权限删除此项目' },
+        { status: 403 }
+      );
+    }
+    
+    // 删除项目
+    const success = await deleteProject(params.id);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: '删除项目失败' },
+        { status: 500 }
+      );
+    }
+    
+    return NextResponse.json({ 
+      success: true
+    });
+  } catch (error) {
+    console.error('删除项目失败:', error);
     return NextResponse.json(
       { error: '服务器内部错误' },
       { status: 500 }
