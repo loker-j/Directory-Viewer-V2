@@ -744,27 +744,50 @@ export async function getProjectById(projectId: string): Promise<any | null> {
   }
   
   try {
-    const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
-    
-    try {
-      // 正确获取项目数据，而不是覆盖它
-      const projectUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${projectBlobName}`;
-      console.log('获取项目详情:', projectUrl);
-      
-      const response = await fetch(projectUrl);
-      if (response.ok) {
-        const project = await response.json();
-        return {
-          ...project,
-          id: projectId
-        };
+    // 判断项目ID是否为URL (大文件情况)
+    if (projectId.startsWith('http')) {
+      console.log('检测到Blob URL格式的项目ID，直接请求数据');
+      try {
+        // 直接获取项目数据，无需构建路径
+        const response = await fetch(projectId);
+        if (response.ok) {
+          const project = await response.json();
+          return {
+            ...project,
+            id: projectId
+          };
+        }
+        
+        console.log(`项目数据获取失败，HTTP状态: ${response.status}`);
+        return null;
+      } catch (error) {
+        console.error(`获取大文件项目详情失败:`, error);
+        return null;
       }
+    } else {
+      // 原有逻辑，处理小文件项目ID
+      const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
       
-      console.log(`项目 ${projectId} 不存在或获取失败`);
-      return null;
-    } catch (error) {
-      console.error(`获取项目详情失败: ${projectId}`, error);
-      return null;
+      try {
+        // 正确获取项目数据，而不是覆盖它
+        const projectUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${projectBlobName}`;
+        console.log('获取项目详情:', projectUrl);
+        
+        const response = await fetch(projectUrl);
+        if (response.ok) {
+          const project = await response.json();
+          return {
+            ...project,
+            id: projectId
+          };
+        }
+        
+        console.log(`项目 ${projectId} 不存在或获取失败`);
+        return null;
+      } catch (error) {
+        console.error(`获取项目详情失败: ${projectId}`, error);
+        return null;
+      }
     }
   } catch (error) {
     console.error(`获取项目详情失败: ${projectId}`, error);
