@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
     const identifier = searchParams.get('identifier');
     
     if (!identifier) {
+      console.error('错误: 未提供标识符');
       return NextResponse.json(
         { success: false, error: '未提供标识符' },
         { status: 400 }
@@ -61,21 +62,36 @@ export async function GET(request: NextRequest) {
     }
     
     console.log('获取目录数据，标识符:', identifier);
-    const data = await retrieveDirectoryData(identifier);
+    console.log('标识符类型:', typeof identifier);
+    console.log('标识符长度:', identifier.length);
     
-    if (!data) {
+    try {
+      const data = await retrieveDirectoryData(identifier);
+      
+      if (!data) {
+        console.error('未找到目录数据，标识符:', identifier);
+        return NextResponse.json(
+          { success: false, error: '未找到目录数据' },
+          { status: 404 }
+        );
+      }
+      
+      console.log('成功获取到目录数据, 名称:', data.name);
+      console.log('项目数据大小:', JSON.stringify(data).length);
+      
+      return NextResponse.json({ 
+        success: true, 
+        data 
+      });
+    } catch (error) {
+      console.error('获取目录数据时发生错误:', error);
       return NextResponse.json(
-        { success: false, error: '未找到目录数据' },
-        { status: 404 }
+        { success: false, error: '获取目录失败' },
+        { status: 500 }
       );
     }
-    
-    return NextResponse.json({ 
-      success: true, 
-      data 
-    });
   } catch (error) {
-    console.error('获取目录数据失败:', error);
+    console.error('获取目录数据请求处理失败:', error);
     return NextResponse.json(
       { success: false, error: '获取目录失败' },
       { status: 500 }

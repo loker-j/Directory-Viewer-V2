@@ -125,6 +125,39 @@ export default function ProjectsPage() {
     fetchShortUrls();
   }, [projects]); // 依赖于projects，但内部有条件避免循环
 
+  // 添加调试函数，用于在控制台显示更多信息
+  const logProjectUrls = () => {
+    console.log('***** 项目URL信息 *****');
+    projects.forEach(project => {
+      console.log(`项目: ${project.name}, ID: ${project.id}`);
+      console.log(`- 短链接: ${project.shortUrl || '未找到'}`);
+      console.log(`- 实际使用URL: ${project.shortUrl || `/projects/${project.id}`}`);
+      console.log('---------------------');
+    });
+  };
+
+  // 在获取到项目或短链接后调用日志函数
+  useEffect(() => {
+    if (projects.length > 0 && !isLoading) {
+      logProjectUrls();
+    }
+  }, [projects, isLoading]);
+
+  // 调试函数：处理点击事件
+  const handleViewClick = (project: Project, e: React.MouseEvent) => {
+    console.log(`点击查看按钮: ${project.name}`);
+    console.log(`- 使用URL: ${project.shortUrl || `/projects/${project.id}`}`);
+    
+    // 如果没有短链接或短链接格式不对，阻止默认行为并提醒
+    const validShortUrl = project.shortUrl && project.shortUrl.includes('/s/');
+    if (!validShortUrl) {
+      console.warn('警告: 没有找到有效的短链接，将使用项目详情页URL');
+      // 继续默认行为
+    } else {
+      console.log('使用短链接打开新窗口');
+    }
+  };
+
   const startEditing = (project: Project) => {
     setEditingId(project.id);
     setNewName(project.name);
@@ -279,6 +312,7 @@ export default function ProjectsPage() {
                       href={project.shortUrl || `/projects/${project.id}`}
                       className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center"
                       target={project.shortUrl ? "_blank" : "_self"}
+                      onClick={(e) => handleViewClick(project, e)}
                     >
                       查看
                       <svg className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -112,16 +112,29 @@ export default function ProjectPage({ params }: PageProps) {
     async function fetchProject() {
       try {
         const identifier = decodeURIComponent(params.id);
+        console.log('获取项目详情，原始参数:', params.id);
+        console.log('解码后的参数:', identifier);
+        console.log('参数类型:', typeof identifier);
+        console.log('参数长度:', identifier.length);
+        
+        // 构建API URL并记录
+        const apiUrl = `/api/viewer/projects?identifier=${encodeURIComponent(identifier)}`;
+        console.log('请求API URL:', apiUrl);
+        
         // 恢复原来的API端点格式
-        const response = await fetch(`/api/viewer/projects?identifier=${encodeURIComponent(identifier)}`);
+        const response = await fetch(apiUrl);
+        console.log('API响应状态:', response.status);
         
         if (!response.ok) {
+          console.error('API响应错误:', response.status);
           throw new Error('加载项目失败');
         }
         
         const data = await response.json();
+        console.log('API响应数据:', data);
         
         if (!data.success || !data.data) {
+          console.error('数据格式错误:', data);
           throw new Error('项目数据无效');
         }
         
