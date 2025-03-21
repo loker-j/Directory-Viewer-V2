@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '@/app/globals.css'
-import { Nav } from '@/components/nav'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,7 +16,6 @@ export default function PublicLayout({
 }) {
   return (
     <div className={`${inter.className} flex flex-col min-h-screen`}>
-      <Nav />
       <div className="flex-1">
         {children}
       </div>

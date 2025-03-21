@@ -65,6 +65,18 @@ export default function PublicProjectPage({ params }: PageProps) {
             console.log('从项目数据中获取短链接ID:', projectData.short_id)
             const fullShortUrl = `${window.location.origin}/s/${projectData.short_id}`
             setShortUrl(fullShortUrl)
+          } else {
+            // 检查当前访问的 URL 是否是通过短链接访问的
+            const path = window.location.pathname
+            if (path.startsWith('/s/')) {
+              // 如果当前是通过短链接访问的，提取短链接 ID
+              const shortId = path.split('/')[2]
+              if (shortId) {
+                const fullShortUrl = `${window.location.origin}/s/${shortId}`
+                setShortUrl(fullShortUrl)
+                console.log('从当前 URL 提取短链接:', fullShortUrl)
+              }
+            }
           }
         } else {
           setError('未找到项目')
@@ -78,6 +90,23 @@ export default function PublicProjectPage({ params }: PageProps) {
     }
 
     fetchProject()
+
+    // 检查当前访问 URL 是否通过短链接
+    const checkCurrentUrl = () => {
+      const referrer = document.referrer
+      console.log('来源页面:', referrer)
+      
+      if (referrer.includes('/s/')) {
+        const shortUrl = new URL(referrer)
+        if (shortUrl.pathname.startsWith('/s/')) {
+          const fullShortUrl = `${window.location.origin}${shortUrl.pathname}`
+          console.log('从 referrer 获取短链接:', fullShortUrl)
+          setShortUrl(fullShortUrl)
+        }
+      }
+    }
+    
+    checkCurrentUrl()
   }, [params.id])
 
   const handleSearch = useCallback((query: string) => {
@@ -138,10 +167,12 @@ export default function PublicProjectPage({ params }: PageProps) {
           <h1 className="text-3xl font-bold text-center mb-2">
             {project.name}
           </h1>
+          
           <ShareOptions 
             url={shortUrl || `${window.location.origin}/public/projects/${params.id}`}
             projectName={project.name}
           />
+          
           <SearchBox 
             onSearch={handleSearch}
             totalMatches={matchedItems.length}
