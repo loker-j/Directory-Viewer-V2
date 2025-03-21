@@ -63,7 +63,10 @@ const directorySchema = z.object({
   name: z.string(),
   size: z.number(),
   itemCount: z.number(),
-  data: z.any()
+  data: z.any(),
+  shortUrl: z.string().optional(),
+  identifier: z.string().optional(),
+  publicIdentifier: z.string().optional()
 }).strict();
 
 // 处理项目上传
