@@ -113,37 +113,28 @@ export default function ProjectPage({ params }: PageProps) {
       try {
         const identifier = decodeURIComponent(params.id);
         console.log('获取项目详情，原始参数:', params.id);
-        console.log('解码后的参数:', identifier);
-        console.log('参数类型:', typeof identifier);
-        console.log('参数长度:', identifier.length);
-        
-        // 构建API URL并记录
-        const apiUrl = `/api/viewer/projects?identifier=${encodeURIComponent(identifier)}`;
-        console.log('请求API URL:', apiUrl);
-        
-        // 恢复原来的API端点格式
-        const response = await fetch(apiUrl);
-        console.log('API响应状态:', response.status);
-        
-        if (!response.ok) {
-          console.error('API响应错误:', response.status);
-          throw new Error('加载项目失败');
-        }
-        
+        const response = await fetch(`/api/projects/${encodeURIComponent(identifier)}`);
         const data = await response.json();
-        console.log('API响应数据:', data);
-        
-        if (!data.success || !data.data) {
-          console.error('数据格式错误:', data);
-          throw new Error('项目数据无效');
+
+        if (!response.ok) {
+          throw new Error(data.error || '获取项目失败');
         }
-        
-        // 设置项目数据
-        setProject(data.data);
-        console.log('获取到项目数据:', data.data);
+
+        if (data.project) {
+          setProject(data.project);
+          
+          // 如果项目数据中已有短链接ID，直接使用
+          if (data.project.short_id) {
+            console.log('从项目数据中获取短链接ID:', data.project.short_id);
+            const fullShortUrl = `${window.location.origin}/s/${data.project.short_id}`;
+            setShortUrl(fullShortUrl);
+          }
+        } else {
+          setError('未找到项目');
+        }
       } catch (error) {
-        console.error('获取项目数据失败:', error);
-        setError(error instanceof Error ? error.message : '加载失败');
+        console.error('获取项目失败:', error);
+        setError('加载项目失败');
       } finally {
         setIsLoading(false);
       }
@@ -164,6 +155,7 @@ export default function ProjectPage({ params }: PageProps) {
       referrer: document.referrer
     });
     
+    // 只有在没有短链接且项目数据中也没有短链接时才创建
     if (project && !shortUrl && !isCreatingShortUrl && !isFromShortUrl) {
       const originalUrl = `${window.location.origin}/projects/${params.id}`;
       createShortUrl(originalUrl);

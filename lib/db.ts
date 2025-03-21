@@ -2,6 +2,7 @@ import { put, list, del } from '@vercel/blob';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { User, ActivationCode, InvitationCode, Session } from '../types';
+import { createShortUrl } from './utils/short-url';
 
 // 用户集合前缀
 const USER_PREFIX = 'users/';
@@ -601,10 +602,21 @@ export async function getUserProjects(userId: string): Promise<any[]> {
         const response = await fetch(projectUrl);
         if (response.ok) {
           const project = await response.json();
-          return {
+          
+          // 构建项目对象，确保包含short_id
+          const projectData = {
             ...project,
             id: projectId
           };
+          
+          // 如果有short_id，转换为完整的shortUrl
+          if (projectData.short_id) {
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+            projectData.shortUrl = `${appUrl}/s/${projectData.short_id}`;
+            console.log(`为项目 ${projectId} 创建完整短链接:`, projectData.shortUrl);
+          }
+          
+          return projectData;
         }
         console.log(`项目 ${projectId} 获取失败`);
         return null;
@@ -633,11 +645,18 @@ export async function saveProject(userId: string, projectData: any): Promise<{id
     const projectId = uuidv4();
     const now = new Date().toISOString();
     
+    // 创建短链接
+    const originalUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000'}/projects/${projectId}`;
+    console.log('准备创建短链接，原始URL:', originalUrl);
+    const shortId = await createShortUrl(originalUrl);
+    console.log('短链接创建成功, ID:', shortId);
+    
     const project = {
       ...projectData,
       user_id: userId,
       created_at: now,
-      updated_at: now
+      updated_at: now,
+      short_id: shortId  // 存储短链接ID
     };
     
     // 保存项目数据

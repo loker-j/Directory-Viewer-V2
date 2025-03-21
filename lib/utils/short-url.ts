@@ -18,6 +18,12 @@ const creatingUrls = new Set<string>() // 记录正在创建中的URL
 export const createShortUrl = cache(async (originalUrl: string): Promise<string> => {
   console.log('开始创建短链接, 原始URL:', originalUrl)
 
+  // 确保环境变量已设置
+  const blobPublicUrl = process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL || '';
+  if (!blobPublicUrl) {
+    console.warn('警告: NEXT_PUBLIC_BLOB_PUBLIC_URL 环境变量未设置');
+  }
+
   // 如果正在创建中，等待
   if (creatingUrls.has(originalUrl)) {
     console.log('URL正在创建中，等待...')
@@ -47,7 +53,7 @@ export const createShortUrl = cache(async (originalUrl: string): Promise<string>
 
     // 检查Blob存储中是否已存在相同的URL
     try {
-      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/short-urls/index.json`;
+      const indexUrl = `${blobPublicUrl}/short-urls/index.json`;
       console.log('检查index URL:', indexUrl);
       const response = await fetch(indexUrl);
       console.log('index响应状态:', response.status);
@@ -91,7 +97,7 @@ export const createShortUrl = cache(async (originalUrl: string): Promise<string>
     // 更新索引
     try {
       const indexPath = 'short-urls/index.json'
-      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${indexPath}`;
+      const indexUrl = `${blobPublicUrl}/${indexPath}`;
       console.log('准备更新index, URL:', indexUrl);
       const indexResponse = await fetch(indexUrl)
       console.log('获取现有index响应状态:', indexResponse.status);
@@ -122,6 +128,12 @@ export const createShortUrl = cache(async (originalUrl: string): Promise<string>
 export const getOriginalUrl = async (shortId: string): Promise<string | null> => {
   console.log('开始获取短链接, ID:', shortId)
 
+  // 确保环境变量已设置
+  const blobPublicUrl = process.env.BLOB_PUBLIC_URL || process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL || '';
+  if (!blobPublicUrl) {
+    console.warn('警告: BLOB_PUBLIC_URL 环境变量未设置');
+  }
+
   // 先从缓存中查找
   const cachedUrl = shortUrlCache.get(shortId)
   if (cachedUrl && !cachedUrl.isExpired) {
@@ -131,7 +143,7 @@ export const getOriginalUrl = async (shortId: string): Promise<string | null> =>
 
   try {
     const path = `short-urls/${shortId}.json`
-    const blobUrl = `${process.env.BLOB_PUBLIC_URL}/${path}`
+    const blobUrl = `${blobPublicUrl}/${path}`
     console.log('请求Blob URL:', blobUrl)
 
     const response = await fetch(blobUrl)

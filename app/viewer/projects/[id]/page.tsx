@@ -116,23 +116,30 @@ export default function ProjectPage({ params }: PageProps) {
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || '加载项目失败')
+          throw new Error(data.error || '获取项目失败');
         }
 
-        if (!data.success || !data.data) {
-          throw new Error('项目数据无效')
+        if (data.project) {
+          setProject(data.project);
+          
+          // 如果项目数据中已有短链接ID，直接使用
+          if (data.project.short_id) {
+            console.log('从项目数据中获取短链接ID:', data.project.short_id);
+            const fullShortUrl = `${window.location.origin}/s/${data.project.short_id}`;
+            setShortUrl(fullShortUrl);
+          }
+        } else {
+          setError('未找到项目');
         }
-
-        setProject(data.data)
       } catch (error) {
-        console.error('获取项目数据失败:', error)
-        setError(error instanceof Error ? error.message : '加载失败')
+        console.error('获取项目失败:', error);
+        setError('加载项目失败');
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchProject()
+    fetchProject();
   }, [params.id])
 
   // 单独的useEffect用于创建短链接
@@ -147,6 +154,7 @@ export default function ProjectPage({ params }: PageProps) {
       referrer: document.referrer
     });
     
+    // 只有在没有短链接且项目数据中也没有短链接时才创建
     if (project && !shortUrl && !isCreatingShortUrl && !isFromShortUrl) {
       const originalUrl = `${window.location.origin}/projects/${params.id}`;
       createShortUrl(originalUrl);

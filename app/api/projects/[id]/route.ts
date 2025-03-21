@@ -133,6 +133,8 @@ export async function GET(
       );
     }
     
+    // 如果项目中没有short_id，可以在此处添加短链接生成逻辑，但这里我们先不实现
+    
     return NextResponse.json({ project });
   } catch (error) {
     console.error('获取项目详情失败:', error);
