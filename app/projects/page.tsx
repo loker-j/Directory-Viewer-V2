@@ -93,7 +93,7 @@ export default function ProjectsPage() {
             
             // 如果找到，构建完整短链接
             const shortUrl = existingId 
-              ? `${window.location.origin}/s/${existingId}` 
+              ? `https://www.mlckq.top/s/${existingId}` 
               : null; // 不保留旧值，确保要么找到有效的短链接，要么为null
               
             if (existingId) {
@@ -106,7 +106,7 @@ export default function ProjectsPage() {
               for (const [id, url] of Object.entries(index)) {
                 const urlString = url.toString();
                 if (urlString.includes(project.id)) {
-                  const backupShortUrl = `${window.location.origin}/s/${id}`;
+                  const backupShortUrl = `https://www.mlckq.top/s/${id}`;
                   console.log(`找到备用短链接: ${backupShortUrl}`);
                   return { ...project, shortUrl: backupShortUrl };
                 }
@@ -160,10 +160,21 @@ export default function ProjectsPage() {
       ? `/projects/${encodeURIComponent(project.id)}` 
       : `/projects/${project.id}`;
       
-    console.log(`- 使用URL: ${project.shortUrl || projectUrl}`);
+    // 检查短链接格式，确保使用正确的域名
+    let usedUrl = project.shortUrl || projectUrl;
+    if (project.shortUrl && !project.shortUrl.startsWith('https://www.mlckq.top')) {
+      // 修复错误格式的短链接
+      const shortId = project.shortUrl.split('/s/')[1];
+      if (shortId) {
+        usedUrl = `https://www.mlckq.top/s/${shortId}`;
+        console.log(`修复短链接格式为: ${usedUrl}`);
+      }
+    }
+    
+    console.log(`- 使用URL: ${usedUrl}`);
     
     // 如果没有短链接或短链接格式不对，阻止默认行为并提醒
-    const validShortUrl = project.shortUrl && project.shortUrl.includes('/s/');
+    const validShortUrl = project.shortUrl && usedUrl.includes('/s/');
     if (!validShortUrl) {
       console.warn('警告: 没有找到有效的短链接，将使用项目详情页URL');
       // 继续默认行为
@@ -323,7 +334,15 @@ export default function ProjectsPage() {
                       </button>
                     )}
                     <Link
-                      href={project.shortUrl || (project.id.startsWith('http') ? `/projects/${encodeURIComponent(project.id)}` : `/projects/${project.id}`)}
+                      href={
+                        project.shortUrl 
+                          ? (project.shortUrl.startsWith('https://www.mlckq.top') 
+                              ? project.shortUrl 
+                              : `https://www.mlckq.top/s/${project.shortUrl.split('/s/')[1]}`)
+                          : (project.id.startsWith('http') 
+                              ? `/projects/${encodeURIComponent(project.id)}` 
+                              : `/projects/${project.id}`)
+                      }
                       className="px-3 py-1 bg-blue-600 text-white rounded-md text-sm flex items-center"
                       target={project.shortUrl ? "_blank" : "_self"}
                       onClick={(e) => handleViewClick(project, e)}
