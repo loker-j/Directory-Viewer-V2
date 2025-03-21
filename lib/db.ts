@@ -560,19 +560,17 @@ export async function getUserProjects(userId: string): Promise<any[]> {
     let projectIds: string[] = [];
     
     try {
-      // 尝试获取用户项目索引
-      const result = await put(userIndexBlobName, JSON.stringify([]), {
-        contentType: 'application/json',
-        access: 'public',
-        addRandomSuffix: false,
-      });
+      // 正确获取用户项目索引，而不是覆盖它
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${userIndexBlobName}`;
+      console.log('尝试获取项目索引:', indexUrl);
       
-      const url = result.url;
-      if (url) {
-        const response = await fetch(url);
-        if (response.ok) {
-          projectIds = await response.json();
-        }
+      const response = await fetch(indexUrl);
+      if (response.ok) {
+        projectIds = await response.json();
+        console.log('获取到项目索引:', projectIds);
+      } else {
+        console.log('项目索引不存在或获取失败，返回空数组');
+        return [];
       }
     } catch (error) {
       console.error('获取用户项目索引失败:', error);
@@ -582,6 +580,7 @@ export async function getUserProjects(userId: string): Promise<any[]> {
     
     // 如果没有找到项目，返回空数组
     if (!projectIds || projectIds.length === 0) {
+      console.log('项目索引为空');
       return [];
     }
     
@@ -589,23 +588,19 @@ export async function getUserProjects(userId: string): Promise<any[]> {
     const projectPromises = projectIds.map(async (projectId) => {
       const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
       try {
-        const result = await put(projectBlobName, JSON.stringify({}), {
-          contentType: 'application/json',
-          access: 'public',
-          addRandomSuffix: false,
-        });
+        // 正确获取项目数据，而不是覆盖它
+        const projectUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${projectBlobName}`;
+        console.log('获取项目数据:', projectUrl);
         
-        const url = result.url;
-        if (url) {
-          const response = await fetch(url);
-          if (response.ok) {
-            const project = await response.json();
-            return {
-              ...project,
-              id: projectId
-            };
-          }
+        const response = await fetch(projectUrl);
+        if (response.ok) {
+          const project = await response.json();
+          return {
+            ...project,
+            id: projectId
+          };
         }
+        console.log(`项目 ${projectId} 获取失败`);
         return null;
       } catch (error) {
         console.error(`获取项目 ${projectId} 详情失败:`, error);
@@ -711,25 +706,20 @@ export async function getProjectById(projectId: string): Promise<any | null> {
     const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
     
     try {
-      // 尝试获取项目数据
-      const result = await put(projectBlobName, JSON.stringify({}), {
-        contentType: 'application/json',
-        access: 'public',
-        addRandomSuffix: false,
-      });
+      // 正确获取项目数据，而不是覆盖它
+      const projectUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${projectBlobName}`;
+      console.log('获取项目详情:', projectUrl);
       
-      const url = result.url;
-      if (url) {
-        const response = await fetch(url);
-        if (response.ok) {
-          const project = await response.json();
-          return {
-            ...project,
-            id: projectId
-          };
-        }
+      const response = await fetch(projectUrl);
+      if (response.ok) {
+        const project = await response.json();
+        return {
+          ...project,
+          id: projectId
+        };
       }
       
+      console.log(`项目 ${projectId} 不存在或获取失败`);
       return null;
     } catch (error) {
       console.error(`获取项目详情失败: ${projectId}`, error);
