@@ -112,20 +112,23 @@ export default function ProjectPage({ params }: PageProps) {
     async function fetchProject() {
       try {
         const identifier = decodeURIComponent(params.id);
-        const response = await fetch(`/api/projects?identifier=${encodeURIComponent(identifier)}`);
+        // 使用公开API获取项目数据，不需要登录
+        const response = await fetch(`/api/public/projects/${encodeURIComponent(identifier)}`);
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || '获取项目失败');
         }
 
-        if (data.project) {
-          setProject(data.project);
+        // 格式可能是project或data，两种情况都处理
+        const projectData = data.project || data.data;
+        if (projectData) {
+          setProject(projectData);
           
           // 如果项目数据中已有短链接ID，直接使用
-          if (data.project.short_id) {
-            console.log('从项目数据中获取短链接ID:', data.project.short_id);
-            const fullShortUrl = `${window.location.origin}/s/${data.project.short_id}`;
+          if (projectData.short_id) {
+            console.log('从项目数据中获取短链接ID:', projectData.short_id);
+            const fullShortUrl = `${window.location.origin}/s/${projectData.short_id}`;
             setShortUrl(fullShortUrl);
           }
         } else {

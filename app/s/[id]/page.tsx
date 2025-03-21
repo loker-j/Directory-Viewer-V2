@@ -28,5 +28,14 @@ export default async function ShortUrlPage({ params }: PageProps) {
     )
   }
 
+  // 检查原始URL是否包含项目ID
+  const projectIdMatch = originalUrl.match(/\/projects\/([^/?&#]+)/);
+  if (projectIdMatch && projectIdMatch[1]) {
+    const projectId = projectIdMatch[1];
+    // 重定向到公开访问的项目页面而不是原始URL
+    redirect(`/public/projects/${projectId}`);
+  }
+  
+  // 如果URL不是项目URL，则使用原始重定向
   redirect(originalUrl)
 } 

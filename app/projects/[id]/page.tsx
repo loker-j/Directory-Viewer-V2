@@ -113,7 +113,8 @@ export default function ProjectPage({ params }: PageProps) {
       try {
         const identifier = decodeURIComponent(params.id);
         console.log('获取项目详情，原始参数:', params.id);
-        const response = await fetch(`/api/projects/${encodeURIComponent(identifier)}`);
+        // 使用公开API获取项目数据，不需要登录
+        const response = await fetch(`/api/public/projects/${encodeURIComponent(identifier)}`);
         const data = await response.json();
 
         if (!response.ok) {
