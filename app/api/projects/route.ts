@@ -43,9 +43,17 @@ export async function GET(request: NextRequest) {
   }
   
   try {
+    console.log(`尝试获取用户 ${currentUser.user.id} 的项目列表`);
+    
     // 从数据库获取真实的用户项目
     const projects = await getUserProjects(currentUser.user.id);
-    console.log(`获取到用户 ${currentUser.user.id} 的项目:`, projects.length || 0);
+    console.log(`获取到用户 ${currentUser.user.id} 的项目数量:`, projects.length || 0);
+    
+    if (projects.length > 0) {
+      console.log('项目示例:', JSON.stringify(projects[0], null, 2));
+    } else {
+      console.log('用户没有项目');
+    }
     
     // 返回真实项目数据
     return NextResponse.json({ projects });

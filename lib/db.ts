@@ -554,6 +554,12 @@ function generateRandomCode(length: number): string {
 export async function getUserProjects(userId: string): Promise<any[]> {
   console.log(`获取用户项目列表, 用户ID: ${userId}`);
   
+  // 检查环境变量是否设置
+  if (!process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL) {
+    console.error('错误: NEXT_PUBLIC_BLOB_PUBLIC_URL 环境变量未设置');
+    return [];
+  }
+  
   try {
     // 查询用户项目索引
     const userIndexBlobName = `${PROJECT_USER_INDEX_PREFIX}${userId}`;
@@ -655,41 +661,51 @@ export async function saveProject(userId: string, projectData: any): Promise<{id
 // 更新用户的项目索引
 async function updateUserProjectIndex(userId: string, projectId: string): Promise<boolean> {
   try {
+    // 检查环境变量是否设置
+    if (!process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL) {
+      console.error('错误: NEXT_PUBLIC_BLOB_PUBLIC_URL 环境变量未设置');
+      return false;
+    }
+    
     // 获取用户项目索引
     const userIndexBlobName = `${PROJECT_USER_INDEX_PREFIX}${userId}`;
     let projectIds: string[] = [];
     
     try {
-      // 尝试获取现有索引
-      const result = await put(userIndexBlobName, JSON.stringify([]), {
-        contentType: 'application/json',
-        access: 'public',
-        addRandomSuffix: false,
-      });
+      // 正确获取用户现有项目索引，而不是覆盖它
+      console.log(`尝试获取用户 ${userId} 的现有项目索引`);
+      const indexUrl = `${process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL}/${userIndexBlobName}`;
+      console.log('索引URL:', indexUrl);
       
-      const url = result.url;
-      if (url) {
-        const response = await fetch(url);
-        if (response.ok) {
-          projectIds = await response.json();
-        }
+      const response = await fetch(indexUrl);
+      if (response.ok) {
+        projectIds = await response.json();
+        console.log('成功获取到现有项目索引:', projectIds);
+      } else {
+        console.log('项目索引不存在，将创建新索引');
+        projectIds = [];
       }
     } catch (error) {
-      // 如果索引不存在，使用空数组
+      console.error('获取项目索引失败，创建新索引:', error);
       projectIds = [];
     }
     
     // 添加新项目ID（如果不存在）
     if (!projectIds.includes(projectId)) {
       projectIds.unshift(projectId); // 在数组开头添加，以便最新的项目排在前面
+      console.log(`添加项目 ${projectId} 到索引，更新后索引:`, projectIds);
+    } else {
+      console.log(`项目 ${projectId} 已存在于索引中`);
     }
     
     // 保存更新后的索引
+    console.log(`保存更新后的项目索引，共 ${projectIds.length} 个项目`);
     await put(userIndexBlobName, JSON.stringify(projectIds), {
       contentType: 'application/json',
       access: 'public',
       addRandomSuffix: false,
     });
+    console.log('项目索引保存成功');
     
     return true;
   } catch (error) {
@@ -701,6 +717,12 @@ async function updateUserProjectIndex(userId: string, projectId: string): Promis
 // 获取指定项目详情
 export async function getProjectById(projectId: string): Promise<any | null> {
   console.log(`获取项目详情, 项目ID: ${projectId}`);
+  
+  // 检查环境变量是否设置
+  if (!process.env.NEXT_PUBLIC_BLOB_PUBLIC_URL) {
+    console.error('错误: NEXT_PUBLIC_BLOB_PUBLIC_URL 环境变量未设置');
+    return null;
+  }
   
   try {
     const projectBlobName = `${PROJECT_PREFIX}${projectId}.json`;
