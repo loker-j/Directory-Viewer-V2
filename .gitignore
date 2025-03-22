@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 自定义忽略项
+cors_configuration_guide.md
+/baidu-netdisk-directory-extractor/

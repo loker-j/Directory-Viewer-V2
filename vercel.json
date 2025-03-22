@@ -1,0 +1,27 @@
+{
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "chrome-extension://pgfdoaahddkffngjfiabifpljldinflh" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,PUT,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type,Authorization" }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "methods": ["OPTIONS"],
+      "dest": "/api/$1",
+      "status": 204,
+      "headers": {
+        "Access-Control-Allow-Origin": "chrome-extension://pgfdoaahddkffngjfiabifpljldinflh",
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization"
+      }
+    }
+  ]
+} 
